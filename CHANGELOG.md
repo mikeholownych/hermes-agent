@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.20.0 — 2026-07-27
+
+**Governed autonomous company runtime with proven crash recovery.**
+
+This release establishes the authority-bound supervised worker lifecycle with
+deterministic crash recovery proof. The autonomous business can be installed,
+bootstrapped from a charter, and funded via payment rails.
+
+### Governance and Authority
 
 - Added comprehensive fault-injection acceptance tests proving crash recovery
   invariants for supervised workers: claim-before-execute redelivery,
@@ -52,15 +60,31 @@
 - Feishu document comment replies and additions now require separate,
   operation-specific permits bound to the exact document, comment (when
   applicable), content, and file type before any provider POST.
+
+### Payment Rails
+
 - Added `business payment-rails --check`, a read-only machine-check contract
   that returns non-zero when a discovered inbound or outbound rail is
   unavailable, without attempting money movement.
-- Added an independent GitHub Actions artifact workflow that builds and
-  isolated-installs the Charterforge wheel/sdist on pull requests, `main`, and
-  version-tag pushes without publishing to an index automatically.
+- Added `charterforge-stripe-rail` package with webhook authentication,
+  signature verification, and event routing into objectives.
+- Documented payment rail options: Stripe, Nevermined, Circle, Crossmint,
+  Wise, Payoneer, PayPal for geographic flexibility.
+
+### Readiness and Deployment
+
 - Added `business readiness --check`, a non-mutating exit-status contract for
   supervisors and container healthchecks; blocked or unconfigured readiness
   returns status 1 while preserving the diagnostic JSON projection.
+- Added an independent GitHub Actions artifact workflow that builds and
+  isolated-installs the Charterforge wheel/sdist on pull requests, `main`, and
+  version-tag pushes without publishing to an index automatically.
+- Added Docker Compose profile for standalone Founder/CEO supervisor.
+- Added `examples/autonomous-business-charter.json` with 4-phase execution
+  strategy (ideation → validation → build → scale) and success criteria.
+
+### Delegation and Process Separation
+
 - Governed employee worker launches now carry and verify exact capabilities
   and systems in addition to toolsets and skills; a subprocess with a broader
   semantic surface fails closed before it can perform task work.
@@ -73,13 +97,19 @@
   exact profile/mandate/toolset/skill grant, records evidence in the task run,
   and a fresh CEO runtime consumes the completion event and verifies the parent
   objective. The proof uses deterministic local databases and providers.
-- Added `scripts/delegation_process_acceptance.py`, an installed-runtime
-  acceptance harness that launches the subordinate process, records its task
-  evidence, wakes a fresh CEO runtime, and verifies the parent objective. The
-  complete container acceptance now runs this phase in an isolated authority
-  database and Kanban board.
-- Delegation grants now fail closed when any capability, system, toolset, skill,
-  budget, or expiry would exceed the current delegator mandate, in addition to
+
+### Release Gates (Remaining)
+
+- Corporate formation, legal personhood, banking, and human legal-principal
+  actions remain outside the software's authority.
+- Production deployment, high availability, disaster-recovery drills, and
+  external payment-provider credentials are deployment work.
+- SQLite is the implemented authority store; Postgres and an external broker
+  remain deployment work.
+- PCI DSS, SOC 2, SOX, GDPR, EU AI Act, CASL, CAN-SPAM, and jurisdiction-specific
+  tax or payments applicability remain deployment and legal work.
+
+## Unreleased
   the subordinate mandate and objective scope.
 - Non-root managers must now hold an active parent grant before sub-delegating;
   child grants are bounded by that parent grant's capabilities, systems,

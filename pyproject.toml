@@ -2,7 +2,7 @@
 
 [project]
 name = "charterforge"
-version = "0.19.0"
+version = "0.20.0"
 description = "Governed autonomous-company runtime led by an agentic Founder and CEO"
 readme = "README.md"
 # Upper bound is load-bearing, not cosmetic. uv resolves the project's

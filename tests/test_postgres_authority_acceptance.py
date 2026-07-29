@@ -301,6 +301,9 @@ class TestDecisiveAcceptanceScenario:
             claim_token=RECLAIM_TOKEN,
             lease_generation=2,
             action_payload=ACTION_PAYLOAD,
+            executor=WORKER_A2,
+            capability="payment:send",
+            target_resource="customer:cust-123",
         )
         assert consumed_new is True, "Gen=2 worker consumes its permit"
 

@@ -357,7 +357,7 @@ def list_objectives(
     *,
     status: Optional[str] = None,
     include_terminal: bool = False,
-    organization_id: str,
+    organization_id: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     if status is not None and status not in OBJECTIVE_STATUSES:
         raise ValueError(f"unknown objective status: {status}")

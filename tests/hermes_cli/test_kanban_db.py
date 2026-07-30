@@ -3130,6 +3130,8 @@ class TestSharedBoardPaths:
                 "id": "taskgrant_test",
                 "toolsets": ["web"],
                 "skills": ["research"],
+                "capabilities": [],
+                "systems": [],
             },
         )
 

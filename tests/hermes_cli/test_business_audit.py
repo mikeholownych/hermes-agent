@@ -63,8 +63,12 @@ def test_durable_audit_redacts_credential_like_fields():
 
 def test_audit_export_is_tenant_scoped_and_self_verifying(tmp_path):
     conn = objectives_db.connect(tmp_path / "authority.db")
-    org_1 = organization_db.create_organization(
-        conn, name="One", purpose="First"
+    org_1, _ = organization_db.bootstrap_solo_founder(
+        conn,
+        organization_name="One",
+        purpose="First",
+        profile_name="default",
+        charter={},
     )
     org_2 = organization_db.create_organization(
         conn, name="Two", purpose="Second"

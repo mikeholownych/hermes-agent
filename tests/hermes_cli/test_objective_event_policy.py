@@ -38,8 +38,12 @@ def test_admission_policy_ignores_payload_self_promotion():
 
 def test_overdue_deadline_preempts_routine_and_high_events(tmp_path, monkeypatch):
     conn = objectives_db.connect(tmp_path / "authority.db")
-    organization_id = organization_db.create_organization(
-        conn, name="Priority Company", purpose="Handle urgent work first"
+    organization_id, _ = organization_db.bootstrap_solo_founder(
+        conn,
+        organization_name="Priority Company",
+        purpose="Handle urgent work first",
+        profile_name="default",
+        charter={},
     )
     objective_id = _objective(conn, organization_id, "Operate safely")
     monkeypatch.setattr(objectives_db, "_now", lambda: 1_000)
@@ -88,8 +92,12 @@ def test_business_commitment_breach_is_critical_and_cannot_self_promote():
 
 def test_aging_prevents_old_routine_event_starvation(tmp_path, monkeypatch):
     conn = objectives_db.connect(tmp_path / "authority.db")
-    organization_id = organization_db.create_organization(
-        conn, name="Aging Company", purpose="Avoid starvation"
+    organization_id, _ = organization_db.bootstrap_solo_founder(
+        conn,
+        organization_name="Aging Company",
+        purpose="Avoid starvation",
+        profile_name="default",
+        charter={},
     )
     old_objective = _objective(conn, organization_id, "Old routine work")
     recent_objective = _objective(conn, organization_id, "Recent high work")
@@ -121,11 +129,19 @@ def test_priority_claim_is_tenant_scoped_and_admission_is_immutable(
     tmp_path, monkeypatch
 ):
     conn = objectives_db.connect(tmp_path / "authority.db")
-    active_org = organization_db.create_organization(
-        conn, name="Active", purpose="Active tenant"
+    active_org, _ = organization_db.bootstrap_solo_founder(
+        conn,
+        organization_name="Active",
+        purpose="Active tenant",
+        profile_name="active-ceo",
+        charter={},
     )
-    foreign_org = organization_db.create_organization(
-        conn, name="Foreign", purpose="Foreign tenant"
+    foreign_org, _ = organization_db.bootstrap_solo_founder(
+        conn,
+        organization_name="Foreign",
+        purpose="Foreign tenant",
+        profile_name="foreign-ceo",
+        charter={},
     )
     active_objective = _objective(conn, active_org, "Active routine")
     foreign_objective = _objective(conn, foreign_org, "Foreign emergency")

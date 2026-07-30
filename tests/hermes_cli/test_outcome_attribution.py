@@ -94,7 +94,7 @@ def _verified_action(conn, objective_id: str) -> tuple[str, str]:
         conn,
         action_id,
         capability="crm.write",
-        issued_to="worker",
+        issued_to="employee:ceo",
         policy_version="v1",
         expires_at=int(time.time()) + 60,
     )
@@ -104,13 +104,13 @@ def _verified_action(conn, objective_id: str) -> tuple[str, str]:
         action_id=action_id,
         organization_id=organization_id,
         payload={"resource": "customer:1", "value": "active"},
-        executor="worker",
+        executor="employee:ceo",
     )
     result_id = objectives_db.record_execution_result(
         conn,
         action_id=action_id,
         permit_id=permit_id,
-        executor="worker",
+        executor="employee:ceo",
         organization_id=organization_id,
         status="succeeded",
         result={"provider_id": "change-1"},

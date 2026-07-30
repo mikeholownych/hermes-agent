@@ -5907,7 +5907,7 @@ class GatewayRunner(
         if active_count < max_sessions:
             return None
         return (
-            f"Hermes is at the active session limit ({active_count}/{max_sessions}). "
+            f"Charterforge is at the active session limit ({active_count}/{max_sessions}). "
             "Try again when another session finishes."
         )
 

@@ -7458,7 +7458,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 )
                 continue
 
-            _cli_visible_print(f"\n  [Hermes #{visible_index}]{_ts_suffix(msg)}")
+            _cli_visible_print(f"\n  [Charterforge #{visible_index}]{_ts_suffix(msg)}")
             tool_calls = msg.get("tool_calls") or []
             if content_text:
                 preview = content_text[:preview_limit]

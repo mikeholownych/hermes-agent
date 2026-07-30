@@ -99,8 +99,17 @@ jobs:
       - name: Build with postgres extra
         run: |
           uv build --wheel --sdist
-          uv pip install --python 3.12 dist/charterforge-0.*-py3-none-any.whl[postgres]
+          uv venv --python 3.12
+          # The trailing [postgres] extras suffix makes the whole
+          # "dist/*.whl[postgres]" argument fail to glob-expand as one word
+          # (bash only expands a glob if the ENTIRE word matches a real
+          # path; the bracket suffix never does), so bash passes the
+          # literal wildcard through to uv, which then fails to parse a
+          # version out of the un-expanded "*". Resolve the wheel path on
+          # its own first, then append the extras suffix as a plain string.
+          WHEEL=$(ls dist/*.whl)
+          uv pip install "${WHEEL}[postgres]"
 
       - name: Verify psycopg installed
         run: |
-          python -c "import psycopg; print(f'✓ psycopg {psycopg.__version__}')"
+          uv run --no-project python -c "import psycopg; print(f'✓ psycopg {psycopg.__version__}')"

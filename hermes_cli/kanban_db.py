@@ -8851,9 +8851,9 @@ def _default_spawn(
     # env, and when the child process starts `hermes -p <name>` the
     # _apply_profile_override() runs *before* hermes_constants is imported.
     # If HERMES_HOME is absent from the child's env, get_hermes_home() falls
-    # back to Path.home() / ".hermes" (the DEFAULT profile root), ignoring the
-    # profile-specific config entirely.  Fixes profile-scoped fallback_providers
-    # being invisible to kanban workers.
+    # back to Path.home() / ".charterforge" (the DEFAULT profile root), ignoring
+    # the profile-specific config entirely.  Fixes profile-scoped
+    # fallback_providers being invisible to kanban workers.
     from hermes_cli.profiles import resolve_profile_env
     try:
         env["HERMES_HOME"] = resolve_profile_env(profile_arg)

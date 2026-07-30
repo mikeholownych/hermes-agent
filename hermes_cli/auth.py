@@ -49,7 +49,11 @@ from hermes_cli.config import (
     read_raw_config,
     require_readable_config_before_write,
 )
-from hermes_constants import OPENROUTER_BASE_URL, secure_parent_dir
+from hermes_constants import (
+    OPENROUTER_BASE_URL,
+    _get_platform_default_hermes_home,
+    secure_parent_dir,
+)
 from agent.credential_persistence import sanitize_borrowed_credential_payload
 from utils import atomic_replace, atomic_yaml_write, env_float, is_truthy_value
 
@@ -910,7 +914,9 @@ def _auth_file_path() -> Path:
     # hermetic conftest, or sandbox escapes via threads/subprocesses. In
     # production (no PYTEST_CURRENT_TEST) this is a single dict lookup.
     if os.environ.get("PYTEST_CURRENT_TEST"):
-        real_home_auth = (Path.home() / ".hermes" / "auth.json").resolve(strict=False)
+        real_home_auth = (_get_platform_default_hermes_home() / "auth.json").resolve(
+            strict=False
+        )
         try:
             resolved = path.resolve(strict=False)
         except Exception:
@@ -962,8 +968,9 @@ def _load_global_auth_store() -> Dict[str, Any]:
     or the global auth.json is absent). Never raises on missing file.
 
     Seat belt: under pytest, refuses to read the real user's
-    ``~/.hermes/auth.json`` even when HERMES_HOME is set to a profile
-    path. The hermetic conftest does not redirect ``HOME``, so
+    ``~/.charterforge/auth.json`` (or the legacy ``~/.hermes/auth.json``)
+    even when HERMES_HOME is set to a profile path. The hermetic conftest
+    does not redirect ``HOME``, so
     ``get_default_hermes_root()`` for a profile-shaped HERMES_HOME can
     still resolve to the real user's home on a dev machine. That would
     leak real credentials into tests. This guard uses the unmodified
@@ -977,9 +984,16 @@ def _load_global_auth_store() -> Dict[str, Any]:
     if os.environ.get("PYTEST_CURRENT_TEST"):
         real_home_env = os.environ.get("HOME", "")
         if real_home_env:
-            real_root = Path(real_home_env) / ".hermes" / "auth.json"
+            real_roots = [
+                Path(real_home_env) / ".charterforge" / "auth.json",
+                Path(real_home_env) / ".hermes" / "auth.json",
+            ]
             try:
-                if global_path.resolve(strict=False) == real_root.resolve(strict=False):
+                resolved_global = global_path.resolve(strict=False)
+                if any(
+                    resolved_global == real_root.resolve(strict=False)
+                    for real_root in real_roots
+                ):
                     return {}
             except Exception:
                 pass
@@ -4422,15 +4436,23 @@ def _write_through_xai_oauth_to_global_root(state: Dict[str, Any]) -> None:
         # Classic mode (profile == root); the profile save already hit root.
         return
     # Seat belt: under pytest, refuse to write the real user's
-    # ~/.hermes/auth.json even when HERMES_HOME points at a profile path
-    # (mirrors the read-side guard in _load_global_auth_store). Uses the
-    # unmodified HOME env, not Path.home() which fixtures may monkeypatch.
+    # ~/.charterforge/auth.json (or the legacy ~/.hermes/auth.json) even when
+    # HERMES_HOME points at a profile path (mirrors the read-side guard in
+    # _load_global_auth_store). Uses the unmodified HOME env, not Path.home()
+    # which fixtures may monkeypatch.
     if os.environ.get("PYTEST_CURRENT_TEST"):
         real_home_env = os.environ.get("HOME", "")
         if real_home_env:
-            real_root = Path(real_home_env) / ".hermes" / "auth.json"
+            real_roots = [
+                Path(real_home_env) / ".charterforge" / "auth.json",
+                Path(real_home_env) / ".hermes" / "auth.json",
+            ]
             try:
-                if global_path.resolve(strict=False) == real_root.resolve(strict=False):
+                resolved_global = global_path.resolve(strict=False)
+                if any(
+                    resolved_global == real_root.resolve(strict=False)
+                    for real_root in real_roots
+                ):
                     return
             except Exception:
                 return

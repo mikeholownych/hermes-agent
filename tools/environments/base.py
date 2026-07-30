@@ -397,9 +397,13 @@ def _cwd_marker(session_id: str) -> str:
 # set), not Hermes' per-turn session identity.
 #
 # Kept in sync with gateway.session_context._VAR_MAP: every bridged name starts
-# with one of these prefixes.
+# with one of these prefixes. HERMES_TENANT_ID/HERMES_ORGANIZATION_ID are
+# tenant-scoping identifiers with the identical cross-session leak risk as the
+# session-identity vars above — a stale value surviving in the shared snapshot
+# would let a later session inherit a FOREIGN tenant/organization scope.
 _SNAPSHOT_EXCLUDED_ENV_REGEX = (
-    "^declare -x (HERMES_SESSION_|HERMES_UI_SESSION_ID|HERMES_CRON_AUTO_DELIVER_)"
+    "^declare -x (HERMES_SESSION_|HERMES_UI_SESSION_ID|HERMES_CRON_AUTO_DELIVER_"
+    "|HERMES_TENANT_ID|HERMES_ORGANIZATION_ID)"
 )
 
 

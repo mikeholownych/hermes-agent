@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { getElevenLabsVoices, getCharterforgeConfigSchema, saveCharterforgeConfig } from '@/hermes'
+import { getCharterforgeConfigSchema, getElevenLabsVoices, saveCharterforgeConfig } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 import type { CharterforgeConfigRecord } from '@/types/hermes'

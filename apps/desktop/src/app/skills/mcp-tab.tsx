@@ -27,11 +27,11 @@ import { TextTab } from '@/components/ui/text-tab'
 import { Tip } from '@/components/ui/tooltip'
 import {
   authMcpServer,
+  type CharterforgeGateway,
   getActionStatus,
   getLogs,
   getMcpCatalog,
   getMcpOAuthFlow,
-  type CharterforgeGateway,
   installMcpCatalogEntry,
   type McpCatalogEntry,
   type McpTestResult,

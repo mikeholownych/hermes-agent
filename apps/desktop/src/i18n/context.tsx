@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getCharterforgeConfigRecord, type CharterforgeConfigRecord, saveCharterforgeConfig } from '@/hermes'
+import { type CharterforgeConfigRecord, getCharterforgeConfigRecord, saveCharterforgeConfig } from '@/hermes'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'

@@ -25,6 +25,13 @@ function measured(value: number, scale: number, unit: string): string {
     : `${new Intl.NumberFormat().format(actual)} ${unit}`;
 }
 
+/** Seconds elapsed since a Unix epoch-seconds timestamp. Kept as a plain
+ * module-level function (not inlined in JSX) so the impure Date.now() read
+ * happens outside the component's render body. */
+function secondsSince(epochSeconds: number): number {
+  return Math.max(0, Math.floor(Date.now() / 1000) - epochSeconds);
+}
+
 export default function BusinessPage() {
   const [data, setData] = useState<BusinessStatusResponse | null>(null);
   const [error, setError] = useState("");
@@ -154,7 +161,7 @@ export default function BusinessPage() {
           label="Lifecycle maintenance"
           value={
             data.maintenance
-              ? `${Math.max(0, Math.floor(Date.now() / 1000) - data.maintenance.last_checked_at)}s ago`
+              ? `${secondsSince(data.maintenance.last_checked_at)}s ago`
               : "Not yet run"
           }
         />
@@ -162,10 +169,8 @@ export default function BusinessPage() {
           label="Authority integrity"
           value={
             data.authority_integrity
-              ? `${data.authority_integrity.status} · ${Math.max(
-                  0,
-                  Math.floor(Date.now() / 1000) -
-                    data.authority_integrity.checked_at,
+              ? `${data.authority_integrity.status} · ${secondsSince(
+                  data.authority_integrity.checked_at,
                 )}s ago`
               : "Not yet verified"
           }

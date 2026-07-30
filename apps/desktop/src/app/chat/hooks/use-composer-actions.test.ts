@@ -4,9 +4,9 @@ import { $connection } from '@/store/session'
 
 import {
   attachmentPreviewDataUrl,
+  CHARTERFORGE_PATHS_MIME,
   type DroppedFile,
   extractDroppedFiles,
-  CHARTERFORGE_PATHS_MIME,
   partitionDroppedFiles
 } from './use-composer-actions'
 

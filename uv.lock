@@ -675,7 +675,7 @@ wheels = [
 
 [[package]]
 name = "charterforge"
-version = "0.20.0"
+version = "0.22.0"
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },

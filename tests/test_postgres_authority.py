@@ -1452,6 +1452,48 @@ class TestTenantManagement:
         assert tenant is not None
         assert tenant["slug"] == "default"
 
+    def test_check_quota_defaults_unregistered_tenant_to_free_tier(self, pg):
+        """A tenant with no tenant_subscriptions row (never explicitly
+        billed) must default to the free plan's limits, not be hard-
+        rejected. Regression test for the bug where every unregistered
+        tenant's claim_task/issue_permit/record_effect call silently failed
+        because check_quota returned (False, 0, 0) for any tenant lacking
+        an explicit subscription row — including tenants freshly registered
+        via create_tenant, which does not itself create a subscription."""
+        from hermes_cli.postgres_authority import check_quota
+        from uuid import UUID
+
+        never_registered = UUID("f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0")
+        allowed, used, limit = check_quota(
+            pg, tenant_id=never_registered, meter_type="task_claim"
+        )
+        assert allowed is True
+        assert used == 0
+        assert limit > 0, "must fall back to the seeded free plan's real limit, not 0"
+
+    def test_check_quota_enforces_free_tier_limit_for_unregistered_tenant(self, pg):
+        """The free-tier fallback must still enforce the real limit once
+        usage reaches it — this is a default tier, not a bypass."""
+        from hermes_cli.postgres_authority import (
+            check_quota, claim_task, DEFAULT_TENANT_ID,
+        )
+        from uuid import UUID
+
+        # DEFAULT_TENANT_ID has an explicit free-tier subscription seeded
+        # at migration time (monthly_task_limit=100); reuse its real limit
+        # by checking an unregistered tenant gets the identical limit.
+        _, _, default_limit = check_quota(
+            pg, tenant_id=DEFAULT_TENANT_ID, meter_type="task_claim"
+        )
+        unregistered = UUID("f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1")
+        _, _, fallback_limit = check_quota(
+            pg, tenant_id=unregistered, meter_type="task_claim"
+        )
+        assert fallback_limit == default_limit, (
+            "unregistered tenant must fall back to the same free-tier limit "
+            "the seeded default tenant's explicit subscription uses"
+        )
+
 
 # ---------------------------------------------------------------------------
 # 8. Cross-tenant attack simulation

@@ -2449,6 +2449,19 @@ def check_quota(
     """Check if a tenant is within their quota for a meter type.
 
     Returns (allowed, used, limit). Enterprise tier always allowed.
+
+    A tenant with no explicit subscription row defaults to the seeded
+    'free' plan's limits rather than being hard-rejected. Tenant
+    registration (create_tenant, or simply being referenced by an ad hoc
+    tenant_id) and billing enrollment are two separate concerns; treating
+    "no subscription yet" as "zero quota forever" would make every
+    unregistered tenant permanently unable to claim, issue, or record
+    anything — effectively a silent, blanket authority denial unrelated to
+    any real billing decision. Defaulting to the free tier mirrors the
+    explicit free-tier subscription already seeded for DEFAULT_TENANT_ID
+    at migration time (see the v6->v7 migration) and keeps the actual quota
+    enforcement (usage compared against a real limit) intact — this is not
+    a bypass, it is the correct default tier.
     """
     tid = str(tenant_id)
     with conn.cursor() as cur:
@@ -2465,7 +2478,19 @@ def check_quota(
         sub_row = cur.fetchone()
 
     if not sub_row:
-        return (False, 0, 0)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT tier, monthly_task_limit, monthly_permit_limit,
+                       monthly_effect_limit
+                FROM billing_plans WHERE plan_id = 'free'
+                """
+            )
+            sub_row = cur.fetchone()
+        if not sub_row:
+            # The free plan itself is missing (should never happen post-
+            # migration) — fail closed rather than assume unlimited access.
+            return (False, 0, 0)
 
     limit_map = {
         "task_claim": sub_row["monthly_task_limit"],

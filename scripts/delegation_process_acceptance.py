@@ -300,7 +300,7 @@ def main() -> int:
         external_reference=task_id,
     )
     conn.commit()
-    (home / "delegation-worker-input.txt").write_text("delegated evidence\n")
+    (home / "delegation-worker-input.txt").write_text("delegated evidence\n", encoding="utf-8")
     print(json.dumps({"phase": "ceo", "grant": str(grant["id"]), "task": task_id}))
 
     child_env = {
@@ -328,7 +328,7 @@ def main() -> int:
     )
     if child.returncode != 0:
         raise RuntimeError(f"subordinate process failed: {child.stderr.strip()}")
-    evidence = json.loads(evidence_path.read_text())
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     print(json.dumps({"phase": "subordinate", **evidence}))
     if objective_service.sync_kanban_events(conn, board=board) != 1:
         raise RuntimeError("CEO was not woken by the subordinate completion event")

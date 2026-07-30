@@ -86,7 +86,7 @@ def test_create_get_list(conn):
     proj = pdb.get_project(conn, pid)
 
     assert proj is not None
-    assert proj.slug == "hermes-agent"
+    assert proj.slug == "charterforge"
     assert proj.name == "Charterforge"
     # First folder becomes primary.
     assert proj.primary_path == "/tmp/hermes"
@@ -94,7 +94,7 @@ def test_create_get_list(conn):
     assert proj.folders[0].is_primary is True
 
     # Lookup by slug too.
-    assert pdb.get_project(conn, "hermes-agent").id == pid
+    assert pdb.get_project(conn, "charterforge").id == pid
     assert len(pdb.list_projects(conn)) == 1
 
 
@@ -103,7 +103,7 @@ def test_slug_collision_disambiguates(conn):
     pdb.create_project(conn, name="Charterforge")
     slugs = sorted(p.slug for p in pdb.list_projects(conn))
 
-    assert slugs == ["hermes-agent", "hermes-agent-2"]
+    assert slugs == ["charterforge", "charterforge-2"]
 
 
 def test_empty_name_rejected(conn):

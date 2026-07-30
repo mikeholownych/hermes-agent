@@ -7,10 +7,17 @@ const config: Config = {
   tagline: 'The self-improving AI agent',
   favicon: 'img/favicon.ico',
 
-  // This fork has no separately hosted documentation domain. Keep generated
-  // links rooted at the independently maintained repository rather than the
-  // upstream Hermes site.
-  url: 'https://github.com/mikeholownych/hermes-agent',
+  // This fork has no separately hosted documentation domain, and
+  // deploy-docs (.github/workflows/deploy-site.yml) is gated to the
+  // upstream repo only, so nothing is actually served from this value here
+  // — it is metadata Docusaurus uses to build absolute canonical links
+  // (og:url, sitemap.xml, RSS). Docusaurus requires `url` to be a bare
+  // origin with no path (the path lives in baseUrl below); the previous
+  // value embedded the repo path directly in `url`, which fails
+  // Docusaurus's own config validation ("url is not supposed to contain a
+  // sub-path"). Use the real domain this repo actually lives under rather
+  // than inventing a hosting domain that doesn't exist for this fork.
+  url: 'https://github.com',
   baseUrl: '/docs/',
 
   organizationName: 'mikeholownych',

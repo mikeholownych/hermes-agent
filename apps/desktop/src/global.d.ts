@@ -156,7 +156,11 @@ declare global {
         // Codex-style review pane: changed files per scope, per-file diff, and
         // stage / unstage / revert.
         review: {
-          list: (repoPath: string, scope: CharterforgeReviewScope, baseRef?: null | string) => Promise<CharterforgeReviewList>
+          list: (
+            repoPath: string,
+            scope: CharterforgeReviewScope,
+            baseRef?: null | string
+          ) => Promise<CharterforgeReviewList>
           diff: (
             repoPath: string,
             filePath: string,

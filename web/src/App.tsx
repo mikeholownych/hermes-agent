@@ -62,7 +62,8 @@ import { Typography } from "@nous-research/ui/ui/components/typography/index";
 import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { SidebarFooter } from "@/components/SidebarFooter";
-import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
+import { SidebarStatusStrip } from "@/components/SidebarStatusStrip";
+import { gatewayLine } from "@/lib/gateway-line";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
 import { useSidebarStatus } from "@/hooks/useSidebarStatus";
 import { AuthWidget } from "@/components/AuthWidget";
@@ -913,9 +914,19 @@ function SidebarSystemActions({
     useState<UpdateCheckResponse | null>(null);
   const [updateConfirmChecking, setUpdateConfirmChecking] = useState(false);
 
-  useEffect(() => {
+  // Reset computed during render (React's "adjusting state when a value
+  // changes" recipe) the moment the dialog closes, rather than in the fetch
+  // effect below.
+  const [prevUpdateConfirmOpen, setPrevUpdateConfirmOpen] = useState(updateConfirmOpen);
+  if (updateConfirmOpen !== prevUpdateConfirmOpen) {
+    setPrevUpdateConfirmOpen(updateConfirmOpen);
     if (!updateConfirmOpen) {
       setUpdateConfirmInfo(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!updateConfirmOpen) {
       return;
     }
     let cancelled = false;

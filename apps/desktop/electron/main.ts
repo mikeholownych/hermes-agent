@@ -2253,7 +2253,8 @@ function writeZoomState(zoomLevel) {
 // CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT always wins so devs can pin a worktree.
 function resolveUpdateRoot() {
   const candidates = [
-    process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT && path.resolve(process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT),
+    process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT &&
+      path.resolve(process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT),
     !IS_PACKAGED && isCharterforgeSourceRoot(SOURCE_REPO_ROOT) ? SOURCE_REPO_ROOT : null,
     isCharterforgeSourceRoot(ACTIVE_CHARTERFORGE_ROOT) ? ACTIVE_CHARTERFORGE_ROOT : null
   ].filter(Boolean)
@@ -2884,7 +2885,9 @@ async function handOffWindowsBootstrapRecovery(reason) {
   // --repair (full venv recreate) and drove reinstall loops. The venv interpreter
   // and the bootstrap-complete marker are present earlier and are better signals.
   const haveRealInstall =
-    fileExists(venvPython) || fileExists(venvCharterforge) || fileExists(path.join(updateRoot, '.hermes-bootstrap-complete'))
+    fileExists(venvPython) ||
+    fileExists(venvCharterforge) ||
+    fileExists(path.join(updateRoot, '.hermes-bootstrap-complete'))
 
   const updaterArgs = chooseUpdaterArgs(haveRealInstall, branch)
 
@@ -3680,7 +3683,9 @@ function createActiveBackend(backendArgs) {
 function resolveCharterforgeBackend(backendArgs) {
   // 1. Explicit override -- CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT points at a developer
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
-  const overrideRoot = process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT && path.resolve(process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT)
+  const overrideRoot =
+    process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT &&
+    path.resolve(process.env.CHARTERFORGE_DESKTOP_CHARTERFORGE_ROOT)
 
   if (overrideRoot && isCharterforgeSourceRoot(overrideRoot)) {
     const backend = createPythonBackend(overrideRoot, `Charterforge source at ${overrideRoot}`, backendArgs)
@@ -3762,7 +3767,10 @@ function resolveCharterforgeBackend(backendArgs) {
       // the Nix wrapper), not a discovered PATH candidate. It must not fall
       // through to the install-script bootstrap if the optional probe times
       // out under load; the pinned backend is the only valid runtime there.
-      if (shouldTrustCharterforgeOverride(hermesOverride) || verifyCharterforgeCli(hermesCommand, { shell: shellForProbe })) {
+      if (
+        shouldTrustCharterforgeOverride(hermesOverride) ||
+        verifyCharterforgeCli(hermesCommand, { shell: shellForProbe })
+      ) {
         return (
           unwrapWindowsVenvCharterforgeCommand(hermesCommand, backendArgs) || {
             label: `existing Charterforge CLI at ${hermesCommand}`,
@@ -3984,7 +3992,8 @@ async function ensureRuntime(backend) {
     // install.ps1 succeeds. If we hit this, the user (or a deleted venv)
     // broke the invariant; tell them to re-run the install.
     throw new Error(
-      `Charterforge venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` + '`scripts/install.ps1` to rebuild it.'
+      `Charterforge venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` +
+        '`scripts/install.ps1` to rebuild it.'
     )
   }
 
@@ -6366,7 +6375,10 @@ async function discoverCloudAgents(org?: string) {
     // A 401 means the portal session lapsed between the liveness check and the
     // call — surface it as a re-login, not a generic failure.
     if (error && error.statusCode === 401) {
-      const err = new Error('Your Charterforge Cloud session has expired. Open Settings → Gateway and sign in again.') as any
+      const err = new Error(
+        'Your Charterforge Cloud session has expired. Open Settings → Gateway and sign in again.'
+      ) as any
+
       err.needsCloudLogin = true
       err.cause = error
       throw err

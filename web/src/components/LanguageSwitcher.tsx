@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { BottomSheet } from "@nous-research/ui/ui/components/bottom-sheet";
 import { Typography } from "@nous-research/ui/ui/components/typography/index";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
-import { useI18n } from "@/i18n/context";
+import { useI18n } from "@/i18n";
 import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,17 @@ export function LanguageSwitcher({ collapsed = false, dropUp = false }: Language
   const dropdownRef = useRef<HTMLDivElement>(null);
   const narrowViewport = useBelowBreakpoint(640);
   const useMobileSheet = Boolean(dropUp && narrowViewport);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+
+  // Measured on open, not read from the ref during render — a ref access
+  // during render can see a stale/detached node, especially under
+  // concurrent rendering. useLayoutEffect (not useEffect) so the dropdown's
+  // fixed position is set before the browser paints, avoiding a visible jump.
+  useLayoutEffect(() => {
+    if (open && !useMobileSheet && dropUp) {
+      setTriggerRect(containerRef.current?.getBoundingClientRect() ?? null);
+    }
+  }, [open, useMobileSheet, dropUp]);
 
   useEffect(() => {
     if (!open) return;
@@ -104,7 +115,6 @@ export function LanguageSwitcher({ collapsed = false, dropUp = false }: Language
       )}
 
       {open && !useMobileSheet && (() => {
-        const rect = containerRef.current?.getBoundingClientRect();
         const dropdown = (
           <div
             ref={dropdownRef}
@@ -115,8 +125,8 @@ export function LanguageSwitcher({ collapsed = false, dropUp = false }: Language
             )}
             role="listbox"
             style={
-              dropUp && rect
-                ? { bottom: window.innerHeight - rect.top + 4, left: rect.left }
+              dropUp && triggerRect
+                ? { bottom: window.innerHeight - triggerRect.top + 4, left: triggerRect.left }
                 : undefined
             }
           >

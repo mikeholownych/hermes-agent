@@ -21,5 +21,5 @@ circle = "charterforge_circle_rail:InboundCircleRail"
 circle = "charterforge_circle_rail:OutboundCircleRail"
 
 [project.urls]
-Homepage = "https://github.com/mikeholownych/hermes-agent"
-Documentation = "https://github.com/mikeholownych/hermes-agent/tree/main/packages/charterforge-circle-rail"
+Homepage = "https://github.com/mikeholownych/charterforge"
+Documentation = "https://github.com/mikeholownych/charterforge/tree/main/packages/charterforge-circle-rail"

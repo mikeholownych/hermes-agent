@@ -449,7 +449,8 @@ export const zh: Translations = {
         title: '宠物',
         intro:
           '领养一只悬浮在应用上的 petdex 动画宠物，它会根据 Charterforge 的状态做出反应——工具执行时奔跑、成功时欢呼、出错时沮丧。',
-        restartHint: '宠物功能需要重启——当前运行的应用在此功能加入前启动。请退出并重新打开 Charterforge，然后回到此处。',
+        restartHint:
+          '宠物功能需要重启——当前运行的应用在此功能加入前启动。请退出并重新打开 Charterforge，然后回到此处。',
         scaleTitle: '大小',
         scaleDesc: '调整悬浮宠物的大小，所有界面即时生效。',
         roamTitle: '漫游',
@@ -784,7 +785,8 @@ export const zh: Translations = {
       defaultConnection: '默认连接会用于所有没有自定义覆盖的 profile。',
       profileConnection: profile => `仅当“${profile}”是当前 profile 时使用此连接。选择“使用默认网关”可移除其覆盖。`,
       envOverrideTitle: '环境变量正在控制此桌面会话。',
-      envOverrideDesc: '取消设置 CHARTERFORGE_DESKTOP_REMOTE_URL 和 CHARTERFORGE_DESKTOP_REMOTE_TOKEN 后才会使用下面保存的设置。',
+      envOverrideDesc:
+        '取消设置 CHARTERFORGE_DESKTOP_REMOTE_URL 和 CHARTERFORGE_DESKTOP_REMOTE_TOKEN 后才会使用下面保存的设置。',
       modeTitle: '连接模式',
       localTitle: '本地网关',
       localDesc: '在 localhost 启动私有 Charterforge 后端。这是默认方式，并且可离线工作。',
@@ -2434,7 +2436,8 @@ export const zh: Translations = {
     copyAuthCode: '复制授权码并粘贴到下面。',
     pasteAuthCode: '粘贴授权码',
     reopenAuthPage: '重新打开授权页面',
-    autoBrowser: provider => `已在浏览器中打开 ${provider}。请在那里授权 Charterforge，连接会自动完成，无需复制或粘贴。`,
+    autoBrowser: provider =>
+      `已在浏览器中打开 ${provider}。请在那里授权 Charterforge，连接会自动完成，无需复制或粘贴。`,
     reopenSignInPage: '重新打开登录页面',
     waitingAuthorize: '等待你授权...',
     externalPending: provider => `${provider} 通过自己的 CLI 登录。请在终端运行此命令，然后回来选择“我已登录”：`,

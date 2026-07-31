@@ -30,7 +30,11 @@ import { cn } from '@/lib/utils'
 import { notifyError } from '@/store/notifications'
 import { startManualLocalEndpoint, startManualOnboarding, startManualProviderOAuth } from '@/store/onboarding'
 
-import { invalidateCharterforgeConfig, setCharterforgeConfigCache, useCharterforgeConfigRecord } from '../hooks/use-config-record'
+import {
+  invalidateCharterforgeConfig,
+  setCharterforgeConfigCache,
+  useCharterforgeConfigRecord
+} from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 
 import { CONTROL_TEXT } from './constants'

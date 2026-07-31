@@ -37,7 +37,12 @@ const profile = (name: string, isDefault = false): ProfileInfo => ({
 })
 
 const remoteConn = (over: Partial<CharterforgeConnection> = {}): CharterforgeConnection =>
-  ({ baseUrl: 'https://hermes-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as CharterforgeConnection
+  ({
+    baseUrl: 'https://hermes-roy.tail.ts.net',
+    mode: 'remote',
+    profile: 'vps-remote',
+    ...over
+  }) as CharterforgeConnection
 
 const localConn = (over: Partial<CharterforgeConnection> = {}): CharterforgeConnection =>
   ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as CharterforgeConnection

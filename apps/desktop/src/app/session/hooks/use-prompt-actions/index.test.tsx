@@ -193,6 +193,12 @@ function Harness({
       submitText: (...args: Parameters<typeof actions.submitText>) =>
         act(async () => actions.submitText(...args)) as Promise<boolean>
     })
+    // Deps are deliberately narrowed to the individual action functions used
+    // above (the `typeof actions.X` type queries make the linter want the
+    // whole `actions` object, but `actions` itself is a fresh object every
+    // render — depending on it would refire onReady on every render instead
+    // of only when a specific action identity changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     actions.cancelRun,
     actions.editMessage,

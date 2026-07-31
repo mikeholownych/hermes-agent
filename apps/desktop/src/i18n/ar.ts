@@ -117,7 +117,8 @@ export const ar = defineLocale({
     errors: {
       elevenLabsNeedsKey: 'يتطلب ElevenLabs STT المفتاح ELEVENLABS_API_KEY.',
       elevenLabsRejectedKey: 'رفض ElevenLabs مفتاح API (401).',
-      methodNotAllowed: 'رفضت خلفية سطح المكتب هذا الطلب (405 Method Not Allowed). جرب إعادة تشغيل Charterforge Desktop.',
+      methodNotAllowed:
+        'رفضت خلفية سطح المكتب هذا الطلب (405 Method Not Allowed). جرب إعادة تشغيل Charterforge Desktop.',
       microphonePermission: 'تم رفض إذن الميكروفون.',
       openaiRejectedApiKey: 'رفض OpenAI مفتاح API.',
       openaiRejectedApiKeyWithStatus: status => `رفض OpenAI مفتاح API (${status} invalid_api_key).`,
@@ -653,7 +654,8 @@ export const ar = defineLocale({
       profileConnection: profile =>
         `الاتصال المستخدم فقط عندما يكون "${profile}" هو الملف الشخصي النشط. اختر "استخدام البوابة الافتراضية" لإزالة التجاوز الخاص به.`,
       envOverrideTitle: 'متغيرات البيئة تتحكم في جلسة سطح المكتب هذه.',
-      envOverrideDesc: 'أزل CHARTERFORGE_DESKTOP_REMOTE_URL و CHARTERFORGE_DESKTOP_REMOTE_TOKEN لاستخدام الإعداد المحفوظ أدناه.',
+      envOverrideDesc:
+        'أزل CHARTERFORGE_DESKTOP_REMOTE_URL و CHARTERFORGE_DESKTOP_REMOTE_TOKEN لاستخدام الإعداد المحفوظ أدناه.',
       localTitle: 'بوابة محلية',
       localDesc: 'تشغيل خلفية Charterforge خاصة على localhost. هذا هو الافتراضي ويعمل دون اتصال.',
       inheritTitle: 'استخدام البوابة الافتراضية',
@@ -1620,7 +1622,11 @@ export const ar = defineLocale({
     placeholderStarting: 'جار بدء Charterforge...',
     placeholderReconnecting: 'جار إعادة الاتصال...',
     placeholderFollowUp: 'اكتب متابعة...',
-    newSessionPlaceholders: ['اسأل Charterforge عن شيء...', 'اطلب من Charterforge تنفيذ مهمة...', 'ابدأ محادثة جديدة...'],
+    newSessionPlaceholders: [
+      'اسأل Charterforge عن شيء...',
+      'اطلب من Charterforge تنفيذ مهمة...',
+      'ابدأ محادثة جديدة...'
+    ],
     followUpPlaceholders: ['اكتب متابعة...', 'أضف توجيها...', 'اسأل سؤالا آخر...'],
     startVoice: 'بدء الصوت',
     queueMessage: 'إضافة الرسالة للطابور',
@@ -1940,7 +1946,8 @@ export const ar = defineLocale({
     copyAuthCode: 'انسخ رمز التفويض وألصقه أدناه.',
     pasteAuthCode: 'ألصق رمز التفويض',
     reopenAuthPage: 'إعادة فتح صفحة التفويض',
-    autoBrowser: provider => `فتحنا ${provider} في المتصفح. صرّح لـ Charterforge هناك وسيتم الاتصال تلقائياً دون نسخ أو لصق.`,
+    autoBrowser: provider =>
+      `فتحنا ${provider} في المتصفح. صرّح لـ Charterforge هناك وسيتم الاتصال تلقائياً دون نسخ أو لصق.`,
     reopenSignInPage: 'إعادة فتح صفحة تسجيل الدخول',
     waitingAuthorize: 'بانتظار التفويض...',
     externalPending: provider =>

@@ -51,7 +51,7 @@ Pick the row that matches your goal:
 ## 1. Install Charterforge from source
 
 ```bash
-git clone https://github.com/mikeholownych/hermes-agent.git charterforge
+git clone https://github.com/mikeholownych/charterforge.git charterforge
 cd charterforge
 uv sync
 uv run charterforge --help

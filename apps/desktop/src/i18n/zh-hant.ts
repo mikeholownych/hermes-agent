@@ -337,7 +337,8 @@ export const zhHant = defineLocale({
         title: '寵物',
         intro:
           '領養一隻懸浮在應用上的 petdex 動畫寵物，它會根據 Charterforge 的狀態做出反應——工具執行時奔跑、成功時歡呼、出錯時沮喪。',
-        restartHint: '寵物功能需要重新啟動——目前執行的應用在此功能加入前啟動。請結束並重新開啟 Charterforge，然後回到此處。',
+        restartHint:
+          '寵物功能需要重新啟動——目前執行的應用在此功能加入前啟動。請結束並重新開啟 Charterforge，然後回到此處。',
         scaleTitle: '大小',
         scaleDesc: '調整懸浮寵物的大小，所有介面即時生效。',
         roamTitle: '漫遊',
@@ -672,7 +673,8 @@ export const zhHant = defineLocale({
       defaultConnection: '預設連線適用於所有沒有自訂覆寫的設定檔。',
       profileConnection: profile => `僅當「${profile}」為作用中設定檔時使用此連線。選擇「使用預設閘道」可移除其覆寫。`,
       envOverrideTitle: '環境變數正在控制此桌面工作階段。',
-      envOverrideDesc: '取消設定 CHARTERFORGE_DESKTOP_REMOTE_URL 和 CHARTERFORGE_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
+      envOverrideDesc:
+        '取消設定 CHARTERFORGE_DESKTOP_REMOTE_URL 和 CHARTERFORGE_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
       localTitle: '本機閘道',
       localDesc: '在 localhost 啟動私有 Charterforge 後端。這是預設方式，可離線使用。',
       inheritTitle: '使用預設閘道',
@@ -2056,7 +2058,8 @@ export const zhHant = defineLocale({
     copyAuthCode: '複製授權碼並貼到下方。',
     pasteAuthCode: '貼上授權碼',
     reopenAuthPage: '重新開啟授權頁面',
-    autoBrowser: provider => `已在瀏覽器中開啟 ${provider}。請在那裡授權 Charterforge，連線會自動完成，無需複製或貼上。`,
+    autoBrowser: provider =>
+      `已在瀏覽器中開啟 ${provider}。請在那裡授權 Charterforge，連線會自動完成，無需複製或貼上。`,
     reopenSignInPage: '重新開啟登入頁面',
     waitingAuthorize: '等待您授權...',
     externalPending: provider => `${provider} 透過自己的 CLI 登入。請在終端機執行此指令，然後回來選擇「我已登入」：`,

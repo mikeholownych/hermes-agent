@@ -668,11 +668,18 @@ function WhatsAppOnboardingPanel({
   const [error, setError] = useState("");
   const [tick, setTick] = useState(0);
 
-  useEffect(() => {
+  // Adopt the server-reported mode once it arrives, computed during render
+  // (React's "adjusting state when a value changes" recipe) rather than in
+  // an effect — mirrors the effect's [configuredMode, phase, setup] deps via
+  // a single composite key so it re-checks on exactly the same changes.
+  const adoptModeDepsKey = `${configuredMode ?? ""}|${phase}|${setup ? 1 : 0}`;
+  const [prevAdoptModeDepsKey, setPrevAdoptModeDepsKey] = useState(adoptModeDepsKey);
+  if (adoptModeDepsKey !== prevAdoptModeDepsKey) {
+    setPrevAdoptModeDepsKey(adoptModeDepsKey);
     if (!setup && phase === "idle" && configuredMode) {
       setMode(configuredMode);
     }
-  }, [configuredMode, phase, setup]);
+  }
 
   const updateQr = useCallback(async (payload?: string | null) => {
     if (!payload) return;

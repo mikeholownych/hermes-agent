@@ -151,7 +151,9 @@ describe('shouldUseNativeClipboard', () => {
     // remaining path — keep it on regardless of terminal allowlist.
     expect(shouldUseNativeClipboard({ CHARTERFORGE_TUI_FORCE_OSC52: '0' } as NodeJS.ProcessEnv, 'ghostty')).toBe(true)
     expect(shouldUseNativeClipboard({ CHARTERFORGE_TUI_FORCE_OSC52: '0' } as NodeJS.ProcessEnv, 'kitty')).toBe(true)
-    expect(shouldUseNativeClipboard({ CHARTERFORGE_TUI_CLIPBOARD_OSC52: '0' } as NodeJS.ProcessEnv, 'WezTerm')).toBe(true)
+    expect(shouldUseNativeClipboard({ CHARTERFORGE_TUI_CLIPBOARD_OSC52: '0' } as NodeJS.ProcessEnv, 'WezTerm')).toBe(
+      true
+    )
     expect(shouldUseNativeClipboard({ CHARTERFORGE_TUI_COPY_OSC52: 'no' } as NodeJS.ProcessEnv, 'vscode')).toBe(true)
   })
 
@@ -160,7 +162,10 @@ describe('shouldUseNativeClipboard', () => {
     // have tmux set up for passthrough). On an allowlisted terminal the
     // race-avoidance still applies.
     expect(
-      shouldUseNativeClipboard({ CHARTERFORGE_TUI_FORCE_OSC52: '1', TMUX: '/tmp/t,1,0' } as NodeJS.ProcessEnv, 'ghostty')
+      shouldUseNativeClipboard(
+        { CHARTERFORGE_TUI_FORCE_OSC52: '1', TMUX: '/tmp/t,1,0' } as NodeJS.ProcessEnv,
+        'ghostty'
+      )
       // TMUX guard wins — native still fires because we're going through
       // tmux load-buffer, not raw OSC 52 to the terminal.
     ).toBe(true)

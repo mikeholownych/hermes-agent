@@ -566,7 +566,9 @@ describe('background-aware adaptation (OSC-11 light terminals)', () => {
     expect(luminance(DEFAULT_THEME.color.completionBg)).toBeLessThanOrEqual(0.35)
 
     // …then the OSC-11 answer lands and is cached into the env slot.
-    expect(defaultThemeForCurrentBackground({ CHARTERFORGE_TUI_BACKGROUND: '#ffffff' }).color).toEqual(LIGHT_THEME.color)
+    expect(defaultThemeForCurrentBackground({ CHARTERFORGE_TUI_BACKGROUND: '#ffffff' }).color).toEqual(
+      LIGHT_THEME.color
+    )
   })
 
   it('gives tool + thinking their own keys, defaulting to accent + muted', async () => {

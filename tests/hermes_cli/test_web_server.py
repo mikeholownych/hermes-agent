@@ -206,21 +206,51 @@ class TestRedactKey:
 
 
 class TestSessionTokenInjection:
-    """The desktop shell mints HERMES_DASHBOARD_SESSION_TOKEN and signs its
-    /api + /api/ws calls with it. The backend must adopt that token, else every
-    desktop request 401s ("gateway is offline"). A main-merge once silently
-    dropped this read — this guards the contract, not a literal value.
+    """The desktop shell mints CHARTERFORGE_DASHBOARD_SESSION_TOKEN and signs
+    its /api + /api/ws calls with it. The backend must adopt that token, else
+    every desktop request 401s/403s the WS upgrade ("gateway is offline"). A
+    main-merge once silently dropped this read — this guards the contract,
+    not a literal value. The legacy HERMES_DASHBOARD_SESSION_TOKEN name is
+    honored as a fallback for version skew against a pre-rename desktop shell.
     """
 
     def test_honors_injected_token(self, monkeypatch):
         import importlib
         import hermes_cli.web_server as ws
 
-        monkeypatch.setenv("HERMES_DASHBOARD_SESSION_TOKEN", "desktop-seeded-token")
+        monkeypatch.delenv("HERMES_DASHBOARD_SESSION_TOKEN", raising=False)
+        monkeypatch.setenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", "desktop-seeded-token")
         try:
             importlib.reload(ws)
             assert ws._SESSION_TOKEN == "desktop-seeded-token"
         finally:
+            monkeypatch.delenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", raising=False)
+            importlib.reload(ws)
+
+    def test_honors_legacy_injected_token(self, monkeypatch):
+        import importlib
+        import hermes_cli.web_server as ws
+
+        monkeypatch.delenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", raising=False)
+        monkeypatch.setenv("HERMES_DASHBOARD_SESSION_TOKEN", "legacy-seeded-token")
+        try:
+            importlib.reload(ws)
+            assert ws._SESSION_TOKEN == "legacy-seeded-token"
+        finally:
+            monkeypatch.delenv("HERMES_DASHBOARD_SESSION_TOKEN", raising=False)
+            importlib.reload(ws)
+
+    def test_new_name_takes_precedence_over_legacy(self, monkeypatch):
+        import importlib
+        import hermes_cli.web_server as ws
+
+        monkeypatch.setenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", "new-token")
+        monkeypatch.setenv("HERMES_DASHBOARD_SESSION_TOKEN", "legacy-token")
+        try:
+            importlib.reload(ws)
+            assert ws._SESSION_TOKEN == "new-token"
+        finally:
+            monkeypatch.delenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", raising=False)
             monkeypatch.delenv("HERMES_DASHBOARD_SESSION_TOKEN", raising=False)
             importlib.reload(ws)
 
@@ -228,6 +258,7 @@ class TestSessionTokenInjection:
         import importlib
         import hermes_cli.web_server as ws
 
+        monkeypatch.delenv("CHARTERFORGE_DASHBOARD_SESSION_TOKEN", raising=False)
         monkeypatch.delenv("HERMES_DASHBOARD_SESSION_TOKEN", raising=False)
         importlib.reload(ws)
 

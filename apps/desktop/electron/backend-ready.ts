@@ -2,8 +2,10 @@ import fs from 'node:fs'
 
 // `hermes serve` announces CHARTERFORGE_BACKEND_READY; the legacy `hermes dashboard`
 // backend announces CHARTERFORGE_DASHBOARD_READY. Accept either so the desktop spawn
-// works against both the headless backend and old/dashboard runtimes.
-const _READY_RE = /^CHARTERFORGE_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
+// works against both the headless backend and old/dashboard runtimes. Also accept
+// the pre-rename HERMES_* tokens for version skew against an already-installed
+// backend that predates the Charterforge rename.
+const _READY_RE = /^(?:CHARTERFORGE|HERMES)_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
 
 // The announcement clock starts the instant the backend process is spawned —
 // before uvicorn binds its socket. On a cold install the child must first

@@ -107,6 +107,20 @@ test('parses the port even when the line arrives split across chunks', async () 
   assert.equal(await p, 8080)
 })
 
+test('also accepts the legacy HERMES_BACKEND_READY token (version skew)', async () => {
+  const child = makeFakeChild()
+  const p = waitForDashboardPort(child, 1000)
+  child.stdout.emit('data', 'HERMES_BACKEND_READY port=12345\n')
+  assert.equal(await p, 12345)
+})
+
+test('also accepts the legacy HERMES_DASHBOARD_READY token (version skew)', async () => {
+  const child = makeFakeChild()
+  const p = waitForDashboardPort(child, 1000)
+  child.stdout.emit('data', 'HERMES_DASHBOARD_READY port=54321\n')
+  assert.equal(await p, 54321)
+})
+
 test('rejects when the child exits before announcing', async () => {
   const child = makeFakeChild()
   const p = waitForDashboardPort(child, 1000)

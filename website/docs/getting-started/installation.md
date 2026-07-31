@@ -20,7 +20,7 @@ Clone the independent fork, create the project environment, and invoke the
 canonical command through the supported `uv` entrypoint:
 
 ```bash
-git clone https://github.com/mikeholownych/hermes-agent.git charterforge
+git clone https://github.com/mikeholownych/charterforge.git charterforge
 cd charterforge
 uv sync
 uv run charterforge --help

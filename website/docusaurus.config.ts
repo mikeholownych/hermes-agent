@@ -114,7 +114,7 @@ const config: Config = {
         docs: {
           routeBasePath: '/',  // Docs at the root of /docs/
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/mikeholownych/hermes-agent/edit/main/website/',
+          editUrl: 'https://github.com/mikeholownych/charterforge/edit/main/website/',
         },
         blog: false,
         theme: {
@@ -169,7 +169,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/mikeholownych/hermes-agent',
+          href: 'https://github.com/mikeholownych/charterforge',
           label: 'GitHub',
           position: 'right',
         },
@@ -196,7 +196,7 @@ const config: Config = {
           title: 'Community',
           items: [
             { label: 'Discord', href: 'https://discord.gg/NousResearch' },
-            { label: 'GitHub Issues', href: 'https://github.com/mikeholownych/hermes-agent/issues' },
+            { label: 'GitHub Issues', href: 'https://github.com/mikeholownych/charterforge/issues' },
             { label: 'Skills Hub', href: 'https://agentskills.io' },
           ],
         },
@@ -204,7 +204,7 @@ const config: Config = {
           title: 'More',
           items: [
             { label: 'Install from source', to: '/getting-started/installation' },
-            { label: 'GitHub', href: 'https://github.com/mikeholownych/hermes-agent' },
+            { label: 'GitHub', href: 'https://github.com/mikeholownych/charterforge' },
             { label: 'Nous Research', href: 'https://nousresearch.com' },
           ],
         },

@@ -82,7 +82,7 @@ This repository is under active independent development. There is not yet a
 published Charterforge installer or container registry release.
 
 ```bash
-git clone git@github.com:mikeholownych/hermes-agent.git charterforge
+git clone git@github.com:mikeholownych/charterforge.git charterforge
 cd charterforge
 uv sync
 uv run charterforge --help

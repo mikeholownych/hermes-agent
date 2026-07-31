@@ -27,13 +27,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikeholownych/hermes-agent.git"
+    "url": "git+https://github.com/mikeholownych/charterforge.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mikeholownych/hermes-agent/issues"
+    "url": "https://github.com/mikeholownych/charterforge/issues"
   },
-  "homepage": "https://github.com/mikeholownych/hermes-agent#readme",
+  "homepage": "https://github.com/mikeholownych/charterforge#readme",
   "dependencies": {
     "@streamdown/math": "^1.0.2",
     "agent-browser": "^0.26.0"

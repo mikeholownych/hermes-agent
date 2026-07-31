@@ -65,7 +65,7 @@ fd0485cab - Database CLI commands (8 tests)
 
 ## Evidence
 
-- **v0.20.0 Release**: https://github.com/mikeholownych/hermes-agent/releases/tag/v0.20.0
-- **v0.21.0-rc.1 Release**: https://github.com/mikeholownych/hermes-agent/releases/tag/v0.21.0-rc.1
+- **v0.20.0 Release**: https://github.com/mikeholownych/charterforge/releases/tag/v0.20.0
+- **v0.21.0-rc.1 Release**: https://github.com/mikeholownych/charterforge/releases/tag/v0.21.0-rc.1
 - **CI Passes**: All core tests passing locally and in CI
 - **Proof**: Real subprocess fault injection + Postgres authority operations

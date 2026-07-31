@@ -13,6 +13,7 @@ test('parseRegQueryValue extracts a REG_SZ value', () => {
     '    CHARTERFORGE_HOME    REG_SZ    F:\\Charterforge\\data',
     ''
   ].join('\r\n')
+
   assert.equal(parseRegQueryValue(out, 'CHARTERFORGE_HOME'), 'F:\\Charterforge\\data')
 })
 

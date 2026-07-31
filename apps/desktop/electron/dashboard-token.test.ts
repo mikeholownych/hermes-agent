@@ -21,6 +21,7 @@ import {
 test('extractInjectedDashboardToken reads the JSON-encoded dashboard token', () => {
   const html =
     '<script>window.__CHARTERFORGE_SESSION_TOKEN__="served-token";window.__CHARTERFORGE_BASE_PATH__=""</script>'
+
   assert.equal(extractInjectedDashboardToken(html), 'served-token')
 })
 

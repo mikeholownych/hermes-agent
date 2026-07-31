@@ -6378,6 +6378,7 @@ async function discoverCloudAgents(org?: string) {
       const err = new Error(
         'Your Charterforge Cloud session has expired. Open Settings → Gateway and sign in again.'
       ) as any
+
       err.needsCloudLogin = true
       err.cause = error
       throw err

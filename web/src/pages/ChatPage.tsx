@@ -168,10 +168,14 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
   // TUI/agent bootstrap (`Installing TUI dependencies…`). Latching keeps the
   // PTY alive across later tab switches (the persistence UX) — once true it
   // stays true.
+  // Sticky latch computed during render (not an effect): `hasActivated` only
+  // ever flips false -> true, exactly when isActive is currently true and it
+  // hasn't already latched. See lib/chat-activation.ts for why this exists.
   const [hasActivated, setHasActivated] = useState(isActive);
-  useEffect(() => {
-    setHasActivated((prev) => latchChatActivation(prev, isActive));
-  }, [isActive]);
+  const latchedActivation = latchChatActivation(hasActivated, isActive);
+  if (latchedActivation !== hasActivated) {
+    setHasActivated(latchedActivation);
+  }
   const [searchParams, setSearchParams] = useSearchParams();
   // Lazy-init: the missing-token check happens at construction so the effect
   // body doesn't have to setState (React 19's set-state-in-effect rule).
@@ -1183,6 +1187,16 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
         reconnectTimerRef.current = null;
       }
     };
+    // searchParams/setSearchParams: deliberately excluded — this effect reads
+    // a "learn" query param via searchParams and rewrites the URL through
+    // setSearchParams; depending on the live searchParams object would make
+    // that rewrite re-trigger the effect and tear down/reopen the PTY
+    // connection on every URL change instead of just once per resume param.
+    // terminalTheme: deliberately excluded — only used to seed the terminal
+    // at creation; live theme changes are already synced by the dedicated
+    // `term.options.theme = terminalTheme` effect further below, so including
+    // it here would reconnect the whole PTY session on every theme switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     hasActivated,
     channel,

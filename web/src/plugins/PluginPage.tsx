@@ -26,6 +26,12 @@ export function PluginPage({ name }: { name: string }) {
   );
 
   if (Component) {
+    // Not actually created during render: getPluginComponent reads a stable
+    // reference from registry.ts's module-level Map, populated once by the
+    // plugin's own register() call. useSyncExternalStore's getSnapshot just
+    // reads the current registered value each render — the linter can't see
+    // through that indirection to know it's stable, not freshly constructed.
+    // eslint-disable-next-line react-hooks/static-components
     return <Component />;
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Palette, Check, Type } from "lucide-react";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -32,8 +32,19 @@ export function ThemeSwitcher({ collapsed = false, dropUp = false }: ThemeSwitch
   const dropdownRef = useRef<HTMLDivElement>(null);
   const narrowViewport = useBelowBreakpoint(640);
   const useMobileSheet = Boolean(dropUp && narrowViewport);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
 
   const close = useCallback(() => setOpen(false), []);
+
+  // Measured on open, not read from the ref during render — a ref access
+  // during render can see a stale/detached node, especially under
+  // concurrent rendering. useLayoutEffect (not useEffect) so the dropdown's
+  // fixed position is set before the browser paints, avoiding a visible jump.
+  useLayoutEffect(() => {
+    if (open && !useMobileSheet && dropUp) {
+      setTriggerRect(wrapperRef.current?.getBoundingClientRect() ?? null);
+    }
+  }, [open, useMobileSheet, dropUp]);
 
   useEffect(() => {
     if (!open) return;
@@ -113,7 +124,6 @@ export function ThemeSwitcher({ collapsed = false, dropUp = false }: ThemeSwitch
       )}
 
       {open && !useMobileSheet && (() => {
-        const rect = wrapperRef.current?.getBoundingClientRect();
         const dropdown = (
           <div
             ref={dropdownRef}
@@ -126,8 +136,8 @@ export function ThemeSwitcher({ collapsed = false, dropUp = false }: ThemeSwitch
             )}
             role="listbox"
             style={
-              dropUp && rect
-                ? { bottom: window.innerHeight - rect.top + 4, left: rect.left }
+              dropUp && triggerRect
+                ? { bottom: window.innerHeight - triggerRect.top + 4, left: triggerRect.left }
                 : undefined
             }
           >

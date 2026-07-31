@@ -202,12 +202,12 @@ export default function ConfigPage() {
       .catch(() => {});
   }, []);
 
-  // Set active category when categories load
-  useEffect(() => {
-    if (categoryOrder.length > 0 && !activeCategory) {
-      setActiveCategory(categoryOrder[0]);
-    }
-  }, [categoryOrder, activeCategory]);
+  // Set active category when categories load — computed during render
+  // (React's "adjusting state when a value changes" recipe) rather than in
+  // an effect.
+  if (categoryOrder.length > 0 && !activeCategory) {
+    setActiveCategory(categoryOrder[0]);
+  }
 
   // Load YAML when switching to YAML mode
   useEffect(() => {
@@ -219,10 +219,13 @@ export default function ConfigPage() {
         .catch(() => showToast(t.config.failedToLoadRaw, "error"))
         .finally(() => setYamlLoading(false));
     }
-  }, [yamlMode]);
+  }, [yamlMode, showToast, t.config.failedToLoadRaw]);
 
   /* ---- Categories ---- */
-  const categories = useMemo(() => {
+  // Not memoized: cheap (small schema, single filter/sort pass), nothing
+  // downstream depends on referential stability, and no other effect lists
+  // it as a dependency — a useMemo here only added bookkeeping cost.
+  const categories = (() => {
     if (!schema) return [];
     const allCats = [
       ...new Set(
@@ -232,7 +235,7 @@ export default function ConfigPage() {
     const ordered = categoryOrder.filter((c) => allCats.includes(c));
     const extra = allCats.filter((c) => !categoryOrder.includes(c)).sort();
     return [...ordered, ...extra];
-  }, [schema, categoryOrder]);
+  })();
 
   /* ---- Category field counts ---- */
   const categoryCounts = useMemo(() => {

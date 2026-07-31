@@ -914,9 +914,19 @@ function SidebarSystemActions({
     useState<UpdateCheckResponse | null>(null);
   const [updateConfirmChecking, setUpdateConfirmChecking] = useState(false);
 
-  useEffect(() => {
+  // Reset computed during render (React's "adjusting state when a value
+  // changes" recipe) the moment the dialog closes, rather than in the fetch
+  // effect below.
+  const [prevUpdateConfirmOpen, setPrevUpdateConfirmOpen] = useState(updateConfirmOpen);
+  if (updateConfirmOpen !== prevUpdateConfirmOpen) {
+    setPrevUpdateConfirmOpen(updateConfirmOpen);
     if (!updateConfirmOpen) {
       setUpdateConfirmInfo(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!updateConfirmOpen) {
       return;
     }
     let cancelled = false;

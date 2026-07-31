@@ -412,7 +412,15 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     signingSeq.current += 1
     cloudConnectSeq.current += 1
     setLastTest(null)
-  }, [scope, state.mode, state.sshHost, state.sshUser, state.sshPort, state.sshKeyPath, state.sshRemoteCharterforgePath])
+  }, [
+    scope,
+    state.mode,
+    state.sshHost,
+    state.sshUser,
+    state.sshPort,
+    state.sshKeyPath,
+    state.sshRemoteCharterforgePath
+  ])
 
   const oauthConnected = state.remoteOauthConnected
 

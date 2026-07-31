@@ -59,7 +59,10 @@ export function useCharterforgeConfig({ activeSessionIdRef }: CharterforgeConfig
       const selectionGeneration = getComposerSelectionGeneration()
 
       try {
-        const [config, defaults] = await Promise.all([getCharterforgeConfig(), getCharterforgeConfigDefaults().catch(() => ({}))])
+        const [config, defaults] = await Promise.all([
+          getCharterforgeConfig(),
+          getCharterforgeConfigDefaults().catch(() => ({}))
+        ])
 
         if (profileRefreshEpochRef.current !== profileRefreshEpoch) {
           return

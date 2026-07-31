@@ -133,4 +133,10 @@ function verifyCharterforgeCli(hermesCommand: string, opts?: { shell?: boolean }
   }
 }
 
-export { canImportCharterforgeCli, hermesRuntimeImportProbe, PROBE_TIMEOUT_MS, shouldTrustCharterforgeOverride, verifyCharterforgeCli }
+export {
+  canImportCharterforgeCli,
+  hermesRuntimeImportProbe,
+  PROBE_TIMEOUT_MS,
+  shouldTrustCharterforgeOverride,
+  verifyCharterforgeCli
+}

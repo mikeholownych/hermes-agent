@@ -94,7 +94,9 @@ test('normalizeCharterforgeHomeRoot maps profile homes back to the global Charte
     '/Users/test/.hermes'
   )
   assert.equal(
-    normalizeCharterforgeHomeRoot('C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\oracle', { pathModule: path.win32 }),
+    normalizeCharterforgeHomeRoot('C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\oracle', {
+      pathModule: path.win32
+    }),
     'C:\\Users\\test\\AppData\\Local\\hermes'
   )
   assert.equal(normalizeCharterforgeHomeRoot('/Users/test/.hermes', { pathModule: path.posix }), '/Users/test/.hermes')

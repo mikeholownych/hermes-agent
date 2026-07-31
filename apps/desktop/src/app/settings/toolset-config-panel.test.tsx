@@ -179,7 +179,10 @@ describe('ToolsetConfigPanel', () => {
     const voiceInput = screen.getByDisplayValue('alloy')
     fireEvent.change(voiceInput, { target: { value: 'marin' } })
     await waitFor(() => expect(saveCharterforgeConfig).toHaveBeenCalled(), { timeout: 3000 })
-    const saved = saveCharterforgeConfig.mock.calls.at(-1)?.[0] as Record<string, Record<string, Record<string, string>>>
+    const saved = saveCharterforgeConfig.mock.calls.at(-1)?.[0] as Record<
+      string,
+      Record<string, Record<string, string>>
+    >
     expect(saved.tts.openai.voice).toBe('marin')
   })
 

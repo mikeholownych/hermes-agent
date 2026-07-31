@@ -7,7 +7,12 @@ import { expandWindowsEnvRefs, parseRegQueryValue, readWindowsUserEnvVar } from 
 // ── parseRegQueryValue ─────────────────────────────────────────────────────
 
 test('parseRegQueryValue extracts a REG_SZ value', () => {
-  const out = ['', 'HKEY_CURRENT_USER\\Environment', '    CHARTERFORGE_HOME    REG_SZ    F:\\Charterforge\\data', ''].join('\r\n')
+  const out = [
+    '',
+    'HKEY_CURRENT_USER\\Environment',
+    '    CHARTERFORGE_HOME    REG_SZ    F:\\Charterforge\\data',
+    ''
+  ].join('\r\n')
   assert.equal(parseRegQueryValue(out, 'CHARTERFORGE_HOME'), 'F:\\Charterforge\\data')
 })
 

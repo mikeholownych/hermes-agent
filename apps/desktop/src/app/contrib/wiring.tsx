@@ -263,7 +263,9 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     requestGateway
   })
 
-  const { refreshCharterforgeConfig, sttEnabled, voiceMaxRecordingSeconds } = useCharterforgeConfig({ activeSessionIdRef })
+  const { refreshCharterforgeConfig, sttEnabled, voiceMaxRecordingSeconds } = useCharterforgeConfig({
+    activeSessionIdRef
+  })
 
   const { refreshCurrentModel, selectModel, updateModelOptionsCache } = useModelControls({
     queryClient,

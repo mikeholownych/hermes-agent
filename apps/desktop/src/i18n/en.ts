@@ -1798,7 +1798,8 @@ export const en: Translations = {
       createFailed: 'Could not create project',
       staleBackend:
         'Update the Charterforge backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
-      deleteConfirm: 'This removes the saved project from Charterforge. Files, git repos, and worktrees stay untouched.',
+      deleteConfirm:
+        'This removes the saved project from Charterforge. Files, git repos, and worktrees stay untouched.',
       startWork: 'New worktree',
       newWorktreeTitle: 'New worktree',
       newWorktreeDesc: 'Name the branch for this worktree.',
@@ -2099,7 +2100,8 @@ export const en: Translations = {
     maybeLater: 'Maybe later',
     moreChanges: count => `+ ${count} more change${count === 1 ? '' : 's'} included.`,
     manualTitle: 'Update from your terminal',
-    manualBody: 'You installed Charterforge from the command line, so updates run there too. Paste this into your terminal:',
+    manualBody:
+      'You installed Charterforge from the command line, so updates run there too. Paste this into your terminal:',
     manualPickedUp: 'Charterforge will pick up the new version next time you launch it.',
     guiSkewTitle: 'Update the desktop app',
     guiSkewBody:
@@ -2151,7 +2153,8 @@ export const en: Translations = {
     installLocalDesc: 'Download Charterforge, create its Python environment, and run the backend on this computer.',
     localStartUnavailable: 'Local installation could not start. Restart Charterforge Desktop and try again.',
     remoteSetupTitle: 'Connect to existing Charterforge',
-    remoteSetupDesc: 'Enter your gateway URL. Charterforge Desktop will detect whether it needs a token or browser sign-in.',
+    remoteSetupDesc:
+      'Enter your gateway URL. Charterforge Desktop will detect whether it needs a token or browser sign-in.',
     remoteUrlTitle: 'Gateway URL',
     remoteUrlDesc: 'Use the base URL of the Charterforge gateway, including https:// when remote.',
     remoteUrlPlaceholder: 'https://gateway.example.com/hermes',
@@ -2227,7 +2230,8 @@ export const en: Translations = {
       xai: { short: 'Grok models', description: 'Direct access to xAI Grok models.' },
       local: {
         short: 'self-hosted',
-        description: 'Point Charterforge at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
+        description:
+          'Point Charterforge at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
     },
     backToSignIn: 'Back to sign in',
@@ -2537,7 +2541,8 @@ export const en: Translations = {
       showConsole: 'Show preview console',
       hideDevTools: 'Hide preview DevTools',
       openDevTools: 'Open preview DevTools',
-      finishedRestarting: message => `Charterforge finished restarting the preview server${message ? `: ${message}` : ''}`,
+      finishedRestarting: message =>
+        `Charterforge finished restarting the preview server${message ? `: ${message}` : ''}`,
       failedRestarting: message => `Server restart failed: ${message}`,
       unknownError: 'unknown error',
       restartedTitle: 'Preview server restarted',

@@ -320,7 +320,9 @@ describe('settings helpers', () => {
     })
 
     it('infers the field type from the config value when the schema omits the key', () => {
-      const config: CharterforgeConfigRecord = { memory: { provider: '', memory_enabled: true, memory_char_limit: 2200 } }
+      const config: CharterforgeConfigRecord = {
+        memory: { provider: '', memory_enabled: true, memory_char_limit: 2200 }
+      }
 
       const fields = new Map(sectionFieldEntries({}, config).get('memory') ?? [])
 

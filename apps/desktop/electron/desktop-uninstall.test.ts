@@ -96,7 +96,9 @@ test('resolveRemovableAppPath returns null for an unrecognized Windows dir', () 
 
 test('resolveRemovableAppPath uses APPIMAGE on Linux when set', () => {
   assert.equal(
-    resolveRemovableAppPath('/tmp/.mount_CharterforgeXXXX/hermes', 'linux', { APPIMAGE: '/home/x/Apps/Charterforge.AppImage' }),
+    resolveRemovableAppPath('/tmp/.mount_CharterforgeXXXX/hermes', 'linux', {
+      APPIMAGE: '/home/x/Apps/Charterforge.AppImage'
+    }),
     '/home/x/Apps/Charterforge.AppImage'
   )
 })

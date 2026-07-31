@@ -98,6 +98,10 @@ export function useStatusbarItems({
   // a second per-session copy of the same fact. Re-derives whenever the cwd or
   // the tree changes; null (no named project) falls back to the cwd leaf below.
   const projectTree = useStore($projectTree)
+  // projectTree isn't passed into projectNameForCwd (it reads $projectTree
+  // internally) — it's kept as a dep purely to force recompute when the tree
+  // itself changes (e.g. a project rename) with no cwd change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const projectName = useMemo(() => projectNameForCwd(currentCwd), [currentCwd, projectTree])
   const primaryUsage = useStore($currentUsage)
   const gatewayRestarting = useStore($gatewayRestarting)

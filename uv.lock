@@ -675,7 +675,7 @@ wheels = [
 
 [[package]]
 name = "charterforge"
-version = "0.20.0"
+version = "0.22.0"
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },
@@ -750,6 +750,7 @@ daytona = [
     { name = "daytona" },
 ]
 dev = [
+    { name = "charterforge-stripe-rail" },
     { name = "debugpy" },
     { name = "mcp" },
     { name = "pytest" },
@@ -933,6 +934,7 @@ requires-dist = [
     { name = "charterforge", extras = ["web"], marker = "extra == 'all'" },
     { name = "charterforge", extras = ["web"], marker = "extra == 'termux-all'" },
     { name = "charterforge", extras = ["youtube"], marker = "extra == 'all'" },
+    { name = "charterforge-stripe-rail", marker = "extra == 'dev'", editable = "packages/charterforge-stripe-rail" },
     { name = "concurrent-log-handler", marker = "sys_platform == 'win32'", specifier = "==0.9.29" },
     { name = "croniter", specifier = "==6.0.0" },
     { name = "cryptography", specifier = "==46.0.7" },
@@ -1021,6 +1023,21 @@ requires-dist = [
     { name = "youtube-transcript-api", marker = "extra == 'youtube'", specifier = "==1.2.4" },
 ]
 provides-extras = ["anthropic", "exa", "firecrawl", "parallel-web", "fal", "edge-tts", "modal", "daytona", "hindsight", "dev", "messaging", "cron", "slack", "matrix", "wecom", "cli", "tts-premium", "voice", "honcho", "postgres", "supermemory", "mem0", "vision", "pty", "mcp", "nemo-relay", "homeassistant", "sms", "teams", "computer-use", "acp", "mistral", "bedrock", "vertex", "azure-identity", "termux", "termux-all", "dingtalk", "feishu", "google", "youtube", "web", "all"]
+
+[[package]]
+name = "charterforge-stripe-rail"
+version = "0.1.0"
+source = { editable = "packages/charterforge-stripe-rail" }
+dependencies = [
+    { name = "charterforge" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "charterforge", specifier = ">=0.19.0" },
+    { name = "httpx", specifier = ">=0.28,<0.29" },
+]
 
 [[package]]
 name = "click"

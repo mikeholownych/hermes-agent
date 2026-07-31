@@ -49,16 +49,21 @@ def _resolve_tenant_id() -> Optional[UUID]:
 
 
 def _get_connection():
-    """Get a Postgres connection, or None if not configured."""
+    """Get a Postgres connection, or None if not configured.
+
+    Only "not configured" (checked above) makes a missing bridge
+    legitimate. Once configured, a connection or schema-init failure must
+    NOT silently degrade to "bridge inactive" — that would let a worker
+    proceed on the SQLite side alone while believing Postgres coordination
+    is unavailable for reasons an operator never sees, exactly the kind of
+    silent authority-weakening fallback this store is meant to prevent.
+    """
     if not _postgres_configured():
         return None
-    try:
-        from hermes_cli.postgres_authority import connect, init_schema
-        conn = connect()
-        init_schema(conn)
-        return conn
-    except Exception:
-        return None
+    from hermes_cli.postgres_authority import connect, init_schema
+    conn = connect()
+    init_schema(conn)
+    return conn
 
 
 class AuthorityBridge:
@@ -77,6 +82,14 @@ class AuthorityBridge:
         self._task_id: Optional[str] = None
         self._claim_token: Optional[str] = None
         self._lease_generation: Optional[int] = None
+        self._objective_id: Optional[str] = None
+        # Remembered from issue_permit() so consume_permit() can re-supply
+        # them for exact-action/exact-target re-validation, rather than
+        # silently skipping the check this bridge exists to enforce.
+        self._permit_executor: Optional[str] = None
+        self._permit_capability: Optional[str] = None
+        self._permit_target_resource: Optional[str] = None
+        self._permit_policy_version: Optional[str] = None
 
     @property
     def active(self) -> bool:
@@ -93,11 +106,17 @@ class AuthorityBridge:
         claim_token: str,
         claim_scope_url: str = "",
         ttl_seconds: int = 300,
+        objective_id: Optional[str] = None,
     ) -> Optional[int]:
         """Register a claim in the Postgres store.
 
         Returns the lease_generation if successful, None if the claim
         is already held by another worker.
+
+        objective_id, if supplied, is remembered and forwarded to
+        consume_permit() so consumption can be gated on the mirrored
+        objective-lifecycle status and organization autonomy mode (see
+        postgres_authority.consume_permit's objective_id parameter).
         """
         if not self.active:
             return None
@@ -117,6 +136,7 @@ class AuthorityBridge:
             self._task_id = task_id
             self._claim_token = claim_token
             self._lease_generation = gen
+            self._objective_id = objective_id
         return gen
 
     def issue_permit(
@@ -129,11 +149,16 @@ class AuthorityBridge:
         target_resource: str,
         action_payload: dict[str, Any],
         ttl_seconds: int = 300,
+        policy_version: str = "",
     ) -> Optional[str]:
         """Issue a permit in the Postgres store against the current claim.
 
         Returns the permit_id if successful, None if bridge is inactive.
         Raises ValueError if no claim is held.
+
+        Remembers executor/capability/target_resource/policy_version so
+        consume_permit() can re-supply them for exact-action/exact-target
+        re-validation at consumption time.
         """
         if not self.active:
             return None
@@ -141,7 +166,7 @@ class AuthorityBridge:
             raise ValueError("cannot issue permit without an active claim")
         from hermes_cli.postgres_authority import issue_permit
 
-        return issue_permit(
+        permit_id = issue_permit(
             self._conn,
             task_id=self._task_id,
             organization_id=self.organization_id,
@@ -154,8 +179,14 @@ class AuthorityBridge:
             target_resource=target_resource,
             action_payload=action_payload,
             ttl_seconds=ttl_seconds,
+            policy_version=policy_version,
             tenant_id=self.tenant_id,
         )
+        self._permit_executor = executor
+        self._permit_capability = capability
+        self._permit_target_resource = target_resource
+        self._permit_policy_version = policy_version
+        return permit_id
 
     def record_effect(
         self,
@@ -203,6 +234,13 @@ class AuthorityBridge:
         """Consume a permit in the Postgres store.
 
         Returns True if consumed, False if check fails, None if inactive.
+
+        Re-supplies the executor/capability/target_resource/policy_version
+        remembered from issue_permit(), and the objective_id remembered
+        from claim(), so consumption is gated on exact-action/exact-target
+        matching and (when an objective_id was supplied) mirrored
+        objective-lifecycle/autonomy state — previously this call forwarded
+        none of that and consumption succeeded on fencing/payload alone.
         """
         if not self.active:
             return None
@@ -217,6 +255,11 @@ class AuthorityBridge:
             claim_token=self._claim_token,
             lease_generation=self._lease_generation,
             action_payload=action_payload,
+            executor=self._permit_executor or "",
+            capability=self._permit_capability or "",
+            target_resource=self._permit_target_resource or "",
+            policy_version=self._permit_policy_version or None,
+            objective_id=self._objective_id,
         )
 
     def complete(self, *, outcome: str) -> Optional[bool]:

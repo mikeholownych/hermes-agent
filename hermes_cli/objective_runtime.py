@@ -232,25 +232,6 @@ class ObjectiveRuntime:
         if event is None:
             return CycleOutcome(None, None, "idle", "no due objective events")
 
-        # Mirror the claim into the Postgres authority store when configured.
-        try:
-            from hermes_cli.authority_bridge import AuthorityBridge
-
-            if self._authority_bridge is None:
-                self._authority_bridge = AuthorityBridge(
-                    organization_id=organization_id,
-                    worker_id=self.runtime_id,
-                )
-            if self._authority_bridge.active:
-                claim_token = f"{self.runtime_id}:{event['id']}"
-                self._authority_bridge.claim(
-                    task_id=str(event["objective_id"]),
-                    claim_token=claim_token,
-                    claim_scope_url=f"urn:objective:{event['objective_id']}",
-                    ttl_seconds=claim_ttl_seconds,
-                )
-        except Exception:
-            pass
         objective_id = event["objective_id"]
         cycle_id = f"cycle_{uuid.uuid4().hex}"
         started = int(time.time())
@@ -265,6 +246,37 @@ class ObjectiveRuntime:
                 (cycle_id, objective_id, event["id"], self.runtime_id, started),
             )
         try:
+            # Mirror the claim into the Postgres authority store when
+            # configured. Deliberately NOT wrapped in a swallow-all except:
+            # a bridge failure here must be treated exactly like any other
+            # mid-cycle failure — retried with backoff via the except
+            # Exception handler below, not silently ignored. A lost claim
+            # race (another worker already holds this objective's Postgres
+            # claim — the real cross-process/cross-host exclusivity signal)
+            # raises explicitly so the SQLite claim is released and retried,
+            # rather than proceeding to execute without exclusive authority.
+            from hermes_cli.authority_bridge import AuthorityBridge
+
+            if self._authority_bridge is None:
+                self._authority_bridge = AuthorityBridge(
+                    organization_id=organization_id,
+                    worker_id=self.runtime_id,
+                )
+            if self._authority_bridge.active:
+                claim_token = f"{self.runtime_id}:{event['id']}"
+                generation = self._authority_bridge.claim(
+                    task_id=str(event["objective_id"]),
+                    claim_token=claim_token,
+                    claim_scope_url=f"urn:objective:{event['objective_id']}",
+                    ttl_seconds=claim_ttl_seconds,
+                    objective_id=str(event["objective_id"]),
+                )
+                if generation is None:
+                    raise RuntimeError(
+                        "lost the Postgres claim race for this objective; "
+                        "another worker already holds it"
+                    )
+
             with db.ObjectiveClaimKeeper(
                 self.conn,
                 event_id=str(event["id"]),
@@ -277,6 +289,8 @@ class ObjectiveRuntime:
                 finally:
                     self._claim_keeper = None
         except Exception as exc:
+            if self._authority_bridge is not None:
+                self._authority_bridge.release()
             retry = self.charter.get("retry_policy") or {}
             max_attempts = int(retry.get("max_attempts", 3))
             base_seconds = int(retry.get("base_backoff_seconds", 15))
@@ -348,6 +362,12 @@ class ObjectiveRuntime:
             runtime_id=self.runtime_id,
             status="completed",
         )
+        # The Postgres claim mirrors the objective_inbox event's own
+        # lifecycle: this cycle's claimed work is done, regardless of
+        # whether the objective itself reached a terminal state — matching
+        # SQLite's own unconditional status="completed" above.
+        if self._authority_bridge is not None:
+            self._authority_bridge.complete(outcome=outcome.status)
         self._finish_cycle(
             cycle_id,
             outcome.status,
@@ -750,6 +770,7 @@ class ObjectiveRuntime:
                 ) as keeper:
                     self._assert_event_claim()
                     keeper.assert_owned()
+                    bridge_permit_id = None
                     if permit["consumed_at"] is None:
                         db.consume_permit(
                             self.conn,
@@ -766,6 +787,28 @@ class ObjectiveRuntime:
                             "SELECT * FROM permits WHERE id=?",
                             (permit["id"],),
                         ).fetchone()
+                        # Mirror issuance+consumption for a freshly-consumed
+                        # permit only — an already-consumed permit being
+                        # resumed here has no bridge-side counterpart this
+                        # (possibly fresh) runtime instance can reconstruct,
+                        # matching the same "don't repeat consumption" guard
+                        # applied to the SQLite side above.
+                        bridge_permit_id = self._authority_bridge.issue_permit(
+                            actor=self.runtime_id,
+                            executor=self.executor.identity,
+                            capability=action.required_capability,
+                            action_type=action.action_type,
+                            target_resource=str(
+                                action.payload.get("target_resource") or ""
+                            ),
+                            action_payload=action.payload,
+                            policy_version=self.policy_version,
+                        )
+                        if bridge_permit_id is not None:
+                            self._authority_bridge.consume_permit(
+                                permit_id=bridge_permit_id,
+                                action_payload=action.payload,
+                            )
                     execute_governed = getattr(
                         self.executor, "execute_governed", None
                     )
@@ -805,6 +848,14 @@ class ObjectiveRuntime:
                 external_reference=execution.external_reference,
                 actual_cost_minor=execution.actual_cost_minor,
                 preserve_reservation=execution.preserve_reservation,
+            )
+            self._authority_bridge.record_effect(
+                effect_key=f"action:{action_id}:{permit['id']}",
+                effect_type=action.action_type,
+                permit_id=bridge_permit_id or "",
+                provider_ref=str(execution.external_reference or ""),
+                idempotency_key=f"action:{action_id}",
+                payload={"status": execution.status, "result": execution.result},
             )
             db.enqueue_objective_event(
                 self.conn,
@@ -1677,6 +1728,22 @@ class ObjectiveRuntime:
                         executor=self.executor.identity,
                         current_policy_version=self.policy_version,
                     )
+                    bridge_permit_id = self._authority_bridge.issue_permit(
+                        actor=self.runtime_id,
+                        executor=self.executor.identity,
+                        capability=action.required_capability,
+                        action_type=action.action_type,
+                        target_resource=str(
+                            action.payload.get("target_resource") or ""
+                        ),
+                        action_payload=action.payload,
+                        policy_version=self.policy_version,
+                    )
+                    if bridge_permit_id is not None:
+                        self._authority_bridge.consume_permit(
+                            permit_id=bridge_permit_id,
+                            action_payload=action.payload,
+                        )
                     execute_governed = getattr(
                         self.executor, "execute_governed", None
                     )
@@ -1725,6 +1792,14 @@ class ObjectiveRuntime:
                 external_reference=execution.external_reference,
                 actual_cost_minor=execution.actual_cost_minor,
                 preserve_reservation=execution.preserve_reservation,
+            )
+            self._authority_bridge.record_effect(
+                effect_key=f"action:{action_id}:{permit_id}",
+                effect_type=action.action_type,
+                permit_id=bridge_permit_id or "",
+                provider_ref=str(execution.external_reference or ""),
+                idempotency_key=f"action:{action_id}",
+                payload={"status": execution.status, "result": execution.result},
             )
             ceo = organization_db.active_ceo(self.conn)
             if ceo is not None:

@@ -39,8 +39,8 @@ import {
 import { detectTrigger, textBeforeCaret, type TriggerState } from '@/app/chat/composer/text-utils'
 import { ComposerTriggerPopover } from '@/app/chat/composer/trigger-popover'
 import {
-  extractDroppedFiles,
   CHARTERFORGE_PATHS_MIME,
+  extractDroppedFiles,
   isImagePath,
   partitionDroppedFiles
 } from '@/app/chat/hooks/use-composer-actions'

@@ -1,5 +1,5 @@
 import { asText, normalize } from '@/lib/text'
-import type { ConfigFieldSchema, CharterforgeConfigRecord, ToolsetInfo } from '@/types/hermes'
+import type { CharterforgeConfigRecord, ConfigFieldSchema, ToolsetInfo } from '@/types/hermes'
 
 import { BUILTIN_PERSONALITIES, ENUM_OPTIONS, PROVIDER_GROUPS, SECTIONS } from './constants'
 

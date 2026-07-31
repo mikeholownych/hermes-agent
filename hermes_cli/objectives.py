@@ -66,6 +66,10 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     ls = sub.add_parser("list", aliases=["ls"], help="List objectives")
     ls.add_argument("--status", choices=sorted(db.OBJECTIVE_STATUSES))
     ls.add_argument("--all", action="store_true", help="Include terminal objectives")
+    ls.add_argument(
+        "--organization-id",
+        help="Filter to a single organization (default: all/legacy-unscoped)",
+    )
 
     show = sub.add_parser("show", help="Show objective and governance history")
     show.add_argument("objective_id")
@@ -232,7 +236,10 @@ def objectives_command(args: argparse.Namespace) -> int:
         elif command in {"list", "ls"}:
             _print(
                 db.list_objectives(
-                    conn, status=args.status, include_terminal=args.all
+                    conn,
+                    status=args.status,
+                    include_terminal=args.all,
+                    organization_id=args.organization_id,
                 ),
                 as_json=args.json,
             )

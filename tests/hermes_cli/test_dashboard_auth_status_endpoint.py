@@ -80,6 +80,7 @@ def test_health_reports_liveness_without_loading_gateway_config(gated_client, mo
         "ok": True,
         "version": web_server.__version__,
         "auth_required": True,
+        "database": {"backend": "sqlite", "reachable": True},
     }
 
 

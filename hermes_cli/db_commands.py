@@ -265,11 +265,9 @@ def _get_postgres_url() -> Optional[str]:
 
 def _get_sqlite_path() -> Path:
     """Get SQLite database path from environment."""
-    import os
-    from pathlib import Path
+    from hermes_constants import get_hermes_home
 
-    home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-    return home / "authority.db"
+    return get_hermes_home() / "authority.db"
 
 
 def add_db_parser(subparsers: argparse._SubParsersAction) -> None:

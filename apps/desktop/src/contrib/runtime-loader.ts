@@ -31,7 +31,7 @@ import { getStatus } from '@/hermes'
 import { installPluginSdk, sdkImportMap } from '@/sdk/runtime'
 import { notifyError } from '@/store/notifications'
 
-import { createPluginContext, type CharterforgePlugin } from './plugin'
+import { type CharterforgePlugin, createPluginContext } from './plugin'
 import { dropPlugin, pluginActive, type PluginKind, publishPlugin } from './plugins-store'
 
 interface LoadOptions {

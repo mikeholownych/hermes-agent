@@ -230,6 +230,9 @@ WORKER_SCRIPT = textwrap.dedent('''\
         claim_token=claim_token,
         lease_generation=generation,
         action_payload=action_payload,
+        executor=WORKER_ID,
+        capability="provider:commit",
+        target_resource=f"effect:{EFFECT_ID}",
     )
     assert consumed, "Permit consumption failed"
 

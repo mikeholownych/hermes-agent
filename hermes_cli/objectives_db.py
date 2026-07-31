@@ -357,7 +357,7 @@ def list_objectives(
     *,
     status: Optional[str] = None,
     include_terminal: bool = False,
-    organization_id: str,
+    organization_id: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     if status is not None and status not in OBJECTIVE_STATUSES:
         raise ValueError(f"unknown objective status: {status}")
@@ -823,7 +823,7 @@ def transition_objective(
     with conn:
         _assert_employee_actor_scope(conn, objective_id, actor)
         row = conn.execute(
-            "SELECT status, expires_at, version FROM objectives WHERE id = ?",
+            "SELECT status, expires_at, version, organization_id FROM objectives WHERE id = ?",
             (objective_id,),
         ).fetchone()
         if row is None:
@@ -841,6 +841,7 @@ def transition_objective(
                 "record for its current plan"
             )
         ts = _now()
+        new_version = row["version"] + 1
         updated = conn.execute(
             """
             UPDATE objectives
@@ -860,7 +861,73 @@ def transition_objective(
             previous_status=current,
             next_status=next_status,
         )
+    _mirror_objective_status_to_postgres(
+        objective_id=objective_id,
+        organization_id=row["organization_id"],
+        status=next_status,
+        version=new_version,
+    )
     return get_objective(conn, objective_id)
+
+
+def _mirror_objective_status_to_postgres(
+    *, objective_id: str, organization_id: str, status: str, version: int
+) -> None:
+    """Push the just-committed objective status into the Postgres mirror
+    (pg_objective_status) whenever Postgres coordination is configured, so
+    postgres_authority.consume_permit's objective_id gate has real data to
+    check against.
+
+    This is a synchronous push after the SQLite commit above, not a
+    cross-database transaction — it cannot be made atomic with it. On
+    failure, log and re-raise distinctly WITHOUT rolling back the
+    already-committed SQLite transition: the objective's SQLite state is
+    durably true regardless of whether the Postgres mirror succeeded. A
+    missing/stale mirror row makes Postgres-side permit consumption fail
+    closed (see postgres_authority.consume_permit's objective_id gating) —
+    it does not un-happen a real state transition SQLite already committed.
+
+    Mirrors process-wide (matching authority_bridge._postgres_configured()'s
+    own activation model on this codebase — there is no per-organization
+    backend selection here) rather than per-organization.
+    """
+    import os
+
+    if not (os.environ.get("AUTHORITY_POSTGRES_URL") or os.environ.get("DATABASE_URL")):
+        return
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    try:
+        from hermes_cli.postgres_authority import connect as pg_connect
+        from hermes_cli.postgres_authority import init_schema, mirror_objective_status
+
+        pg_conn = pg_connect()
+        try:
+            init_schema(pg_conn)
+            mirror_objective_status(
+                pg_conn,
+                objective_id=objective_id,
+                organization_id=organization_id,
+                status=status,
+                version=version,
+            )
+        finally:
+            pg_conn.close()
+    except Exception:
+        logger.exception(
+            "Postgres objective-status mirror push failed for objective=%s "
+            "org=%s status=%s version=%s; SQLite transition already "
+            "committed and will NOT be rolled back. Postgres-side permit "
+            "consumption gated on this objective_id will fail closed until "
+            "the mirror catches up.",
+            objective_id,
+            organization_id,
+            status,
+            version,
+        )
+        raise
 
 
 def create_plan(

@@ -1,4 +1,4 @@
-import { getGlobalModelOptions, type CharterforgeGateway, type ModelOptionsResponse } from '@/hermes'
+import { type CharterforgeGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/hermes'
 import type { ModelOptionProvider } from '@/types/hermes'
 
 /**

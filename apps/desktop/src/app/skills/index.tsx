@@ -11,12 +11,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CountSkeleton } from '@/components/ui/skeleton'
 import {
+  type CharterforgeGateway,
   editLearningNode,
   getLearningNode,
   getSkills,
   getToolsets,
   getUsageAnalytics,
-  type CharterforgeGateway,
   toggleSkill,
   toggleToolset
 } from '@/hermes'

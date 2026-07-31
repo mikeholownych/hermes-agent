@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 import uuid
@@ -12,6 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 from hermes_cli import accounting_db, compliance_db, finance_db, payment_controls
+
+logger = logging.getLogger(__name__)
 
 
 SCHEMA_SQL = """
@@ -132,7 +135,21 @@ def _load_rail_group(group: str, expected_type: type) -> dict[str, Any]:
     )
     for entry_point in selected:
         loaded = entry_point.load()
-        rail = loaded() if isinstance(loaded, type) else loaded
+        try:
+            rail = loaded() if isinstance(loaded, type) else loaded
+        except Exception as exc:
+            # An installed rail that isn't configured (missing API key/
+            # credentials) must not take down discovery for every other
+            # caller — callers elsewhere in the runtime (procurement,
+            # objective adapters, business e2e) load *all* rails just to
+            # find the ones they actually use. Skip the unusable rail
+            # rather than propagating its constructor error.
+            logger.warning(
+                "payment rail entry point %r failed to load: %s",
+                entry_point.name,
+                exc,
+            )
+            continue
         if not isinstance(rail, expected_type):
             raise TypeError(
                 f"payment rail entry point {entry_point.name!r} does not implement "

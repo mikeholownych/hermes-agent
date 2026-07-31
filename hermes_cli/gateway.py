@@ -1787,7 +1787,9 @@ def _profile_arg(hermes_home: str | None = None, default_root: str | Path | None
 
 def _profile_arg_for_target_user(hermes_home: str, target_home_dir: str) -> str:
     """Return the profile arg for a system service running as another user."""
-    target_root = Path(target_home_dir) / ".hermes"
+    target_root = Path(target_home_dir) / ".charterforge"
+    if not target_root.is_dir():
+        target_root = Path(target_home_dir) / ".hermes"
     try:
         Path(hermes_home).resolve().relative_to(target_root.resolve())
         return _profile_arg(hermes_home, default_root=target_root)
@@ -2634,20 +2636,28 @@ def _hermes_home_for_target_user(target_home_dir: str) -> str:
     # Keep explicit custom paths lexical. Resolving a non-existent custom path
     # can rewrite it through host-specific path mappings, which would bake a
     # different HERMES_HOME into the generated service unit.
-    current_default = Path.home() / ".hermes"
-    target_default = Path(target_home_dir) / ".hermes"
+    #
+    # Check both the current (.charterforge) and legacy (.hermes) default dir
+    # names: whichever one current_hermes actually matches determines which
+    # name to use for the target user's default too, so hosts still on a
+    # pre-rename ~/.hermes layout remap correctly instead of silently falling
+    # through to "keep as-is" (which would bake the *current* user's own home
+    # path into a target-user systemd unit).
+    for default_name in (".charterforge", ".hermes"):
+        current_default = Path.home() / default_name
+        target_default = Path(target_home_dir) / default_name
 
-    # Default ~/.hermes → remap to target user's default
-    if current_hermes == current_default:
-        return str(target_default)
+        if current_hermes == current_default:
+            return str(target_default)
 
-    # Profile or subdir of ~/.hermes → preserve the relative structure
-    try:
-        relative = current_hermes.relative_to(current_default)
-        return str(target_default / relative)
-    except ValueError:
-        # Completely custom path (not under ~/.hermes) — keep as-is
-        return str(current_hermes)
+        try:
+            relative = current_hermes.relative_to(current_default)
+            return str(target_default / relative)
+        except ValueError:
+            continue
+
+    # Completely custom path (not under either default) — keep as-is
+    return str(current_hermes)
 
 
 def _build_service_path_dirs(project_root: Path | None = None) -> list[str]:

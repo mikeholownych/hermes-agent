@@ -525,3 +525,92 @@ def test_claim_keeper_detects_ownership_loss(tmp_path):
             finally:
                 attacker.close()
             time.sleep(1.2)
+
+
+# ---------------------------------------------------------------------------
+# Postgres objective-status mirror push: transition_objective must push the
+# new status into postgres_authority.pg_objective_status whenever Postgres
+# coordination is configured (AUTHORITY_POSTGRES_URL/DATABASE_URL set), and
+# must be a total no-op with zero Postgres connection attempts otherwise —
+# already proven by every other test in this file passing unmodified with
+# no such env var set.
+# ---------------------------------------------------------------------------
+
+
+def test_transition_does_not_touch_postgres_without_url(conn, monkeypatch):
+    """Regression guard: with no AUTHORITY_POSTGRES_URL/DATABASE_URL set,
+    transition_objective must not attempt any Postgres connection at all."""
+    monkeypatch.delenv("AUTHORITY_POSTGRES_URL", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(
+        "hermes_cli.postgres_authority.connect",
+        lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("must not attempt a Postgres connection when unconfigured")
+        ),
+    )
+
+    objective = odb.create_objective(
+        conn,
+        desired_outcome="no postgres configured",
+        originator="user:mike",
+    )
+    odb.transition_objective(conn, objective.id, "accepted", actor="user:mike")
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("AUTHORITY_POSTGRES_TEST_URL"),
+    reason="requires a live Postgres for the mirror push itself",
+)
+def test_transition_pushes_mirror_when_postgres_configured(tmp_path, monkeypatch):
+    import os
+    import uuid as _uuid
+
+    import psycopg
+    from psycopg.rows import dict_row
+
+    from hermes_cli.postgres_authority import connect as pg_connect
+    from hermes_cli.postgres_authority import get_objective_status, init_schema
+
+    base_url = os.environ["AUTHORITY_POSTGRES_TEST_URL"]
+    schema = f"test_mirror_{_uuid.uuid4().hex[:10]}"
+    setup_conn = pg_connect(base_url)
+    with setup_conn.cursor() as cur:
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+    setup_conn.commit()
+    setup_conn.close()
+
+    if base_url.startswith("postgresql://") or base_url.startswith("postgres://"):
+        sep = "&" if "?" in base_url else "?"
+        scoped_url = f"{base_url}{sep}options=-csearch_path%3D{schema}"
+    else:
+        scoped_url = f"{base_url} options=-csearch_path={schema}"
+    monkeypatch.setenv("AUTHORITY_POSTGRES_URL", scoped_url)
+
+    prep_conn = psycopg.connect(base_url, row_factory=dict_row, options=f"-c search_path={schema}")
+    init_schema(prep_conn)
+    prep_conn.close()
+
+    try:
+        conn = odb.connect(tmp_path / "objectives.db")
+        objective = odb.create_objective(
+            conn,
+            desired_outcome="postgres-mirrored objective",
+            originator="user:mike",
+        )
+        odb.transition_objective(conn, objective.id, "accepted", actor="user:mike")
+
+        pg_conn = pg_connect(scoped_url)
+        try:
+            mirrored = get_objective_status(
+                pg_conn, objective_id=objective.id, organization_id="__unscoped__"
+            )
+            assert mirrored is not None
+            assert mirrored["status"] == "accepted"
+        finally:
+            pg_conn.close()
+    finally:
+        cleanup_conn = pg_connect(base_url)
+        with cleanup_conn.cursor() as cur:
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        cleanup_conn.commit()
+        cleanup_conn.close()

@@ -78,12 +78,22 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             "fence_token INTEGER NOT NULL DEFAULT 1"
         )
     with conn:
-        conn.execute(
+        bootstrap_cursor = conn.execute(
             """INSERT OR IGNORE INTO autonomy_control
                (singleton, mode, generation, changed_by, changed_at)
                VALUES (1, 'autonomous', 1, 'system:bootstrap', ?)""",
             (int(time.time()),),
         )
+    if bootstrap_cursor.rowcount == 1:
+        # This is the first-ever call to reach this INSERT for this store
+        # (every later call is a no-op via OR IGNORE) — establish the
+        # Postgres-side baseline once here, so
+        # postgres_authority.consume_permit's autonomy gate has a row to
+        # check against from the start, rather than only after the first
+        # explicit set_autonomy_mode() call. Gating on rowcount avoids a
+        # Postgres round-trip on every one of ensure_schema()'s many
+        # call sites for an already-bootstrapped store.
+        _mirror_autonomy_mode_to_postgres(conn, mode="autonomous", generation=1)
 
 
 def autonomy_state(conn: sqlite3.Connection) -> dict[str, Any]:
@@ -172,7 +182,77 @@ def set_autonomy_mode(
                     actor=actor,
                     reason=f"autonomy changed to {mode}: {reason}",
                 )
-    return int(autonomy_state(conn)["generation"])
+    new_generation = int(autonomy_state(conn)["generation"])
+    _mirror_autonomy_mode_to_postgres(conn, mode=mode, generation=new_generation)
+    return new_generation
+
+
+def _mirror_autonomy_mode_to_postgres(
+    conn: sqlite3.Connection, *, mode: str, generation: int
+) -> None:
+    """Push the just-committed master-autonomy-stop mode into the Postgres
+    mirror (pg_autonomy_control) for every known organization, whenever
+    Postgres coordination is configured.
+
+    autonomy_control is a whole-store singleton in SQLite — master-
+    autonomy-stop is not per-organization, so every organization sharing
+    this store must observe the same mode/generation transition. This is a
+    synchronous push after the SQLite commit above; on failure it logs and
+    re-raises WITHOUT rolling back the already-committed SQLite transition,
+    matching objectives_db._mirror_objective_status_to_postgres.
+    """
+    import os
+
+    if not (os.environ.get("AUTHORITY_POSTGRES_URL") or os.environ.get("DATABASE_URL")):
+        return
+
+    try:
+        org_table = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='organizations'"
+        ).fetchone()
+        org_ids = (
+            [str(row["id"]) for row in conn.execute("SELECT id FROM organizations")]
+            if org_table is not None
+            else []
+        )
+    except sqlite3.OperationalError:
+        org_ids = []
+    # The organizations table can exist (created as a side effect of an
+    # unrelated lookup, e.g. organization_db.active_ceo's ensure_schema
+    # call) while genuinely having zero rows yet — that is NOT the same as
+    # "no organizations table at all" and must still mirror for the
+    # unscoped/default organization, or the very first bootstrap push (and
+    # any store that never creates an explicit organization) would silently
+    # never reach Postgres.
+    if not org_ids:
+        org_ids = ["__unscoped__"]
+
+    import logging
+
+    from hermes_cli.postgres_authority import connect as pg_connect
+    from hermes_cli.postgres_authority import init_schema, mirror_autonomy_mode
+
+    logger = logging.getLogger(__name__)
+    pg_conn = pg_connect()
+    try:
+        init_schema(pg_conn)
+        for org_id in org_ids:
+            try:
+                mirror_autonomy_mode(
+                    pg_conn, organization_id=org_id, mode=mode, generation=generation
+                )
+            except Exception:
+                logger.exception(
+                    "Postgres autonomy-mode mirror push failed for org=%s "
+                    "mode=%s generation=%s; SQLite autonomy transition "
+                    "already committed and will NOT be rolled back.",
+                    org_id,
+                    mode,
+                    generation,
+                )
+                raise
+    finally:
+        pg_conn.close()
 
 
 def assert_autonomous(conn: sqlite3.Connection) -> None:

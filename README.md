@@ -93,6 +93,8 @@ Local artifact installation is also supported after building the package; see
 [packaging](docs/packaging.md) for the verified wheel, CLI, and independent
 installer smoke commands.
 
+On Windows, use the PowerShell installer instead: `scripts/install.ps1`.
+
 For a persistent container deployment, use the documented Compose profile in
 [agentic bootstrap](docs/agentic-bootstrap.md). The `agentic` profile runs the
 standalone Founder/CEO supervisor against the mounted Charterforge state; it

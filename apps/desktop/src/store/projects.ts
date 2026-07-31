@@ -2,7 +2,7 @@ import { atom } from 'nanostores'
 
 import { liveSessionProjectId, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
 import type { CharterforgeGitBaseBranch, CharterforgeGitBranch } from '@/global'
-import { getCharterforgeConfig, type CharterforgeGateway } from '@/hermes'
+import { type CharterforgeGateway, getCharterforgeConfig } from '@/hermes'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd, isDesktopFsRemoteMode, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'

@@ -9,7 +9,7 @@
  *    — the agent's/user's door, watched + hot-reloaded by the runtime loader.
  */
 
-import { createPluginContext, type CharterforgePlugin } from './plugin'
+import { type CharterforgePlugin, createPluginContext } from './plugin'
 import { pluginActive, publishPlugin } from './plugins-store'
 import { watchRuntimePlugins } from './runtime-loader'
 

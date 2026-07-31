@@ -46,7 +46,7 @@ except ImportError:
 # Current schema version.  Startup fails closed if the DB is on an
 # unsupported version (higher than this) or a lower version that cannot
 # be migrated automatically.
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 # Each entry describes one migration step: (from_version, sql).
 # Migrations are applied in order when current_version < SCHEMA_VERSION.
@@ -646,7 +646,49 @@ _MIGRATIONS: list[tuple[int, str]] = [
             ON secrets(tenant_id);
         """,
     ),
+    # v12 → v13: objective-lifecycle and master-autonomy-stop mirrors.
+    #
+    # Objectives, plans, and mandates remain SQLite-owned (see
+    # objectives_db.py / organization_db.py / operational_control.py); these
+    # two tables are narrow, versioned, fail-closed *status mirrors* pushed
+    # synchronously from the SQLite side whenever an org's authority_backend
+    # is Postgres. consume_permit() below joins against them so that a
+    # cancelled objective or a stopped-autonomy org cannot authorize permit
+    # consumption purely because the claim/generation/payload fencing checks
+    # passed. Absence of a row is always treated as "reject" (fail closed),
+    # never as an implicit "admissible"/"autonomous" default. Scoped by
+    # organization_id (not tenant_id) to match the SQLite objectives table's
+    # own keying — organization_id remains the join key between the SQLite
+    # workflow layer and this Postgres coordination store.
+    (
+        12,
+        """
+        CREATE TABLE IF NOT EXISTS pg_objective_status (
+            objective_id     TEXT        NOT NULL,
+            organization_id  TEXT        NOT NULL,
+            status           TEXT        NOT NULL,
+            version          BIGINT      NOT NULL DEFAULT 1,
+            updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (objective_id, organization_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_pg_objective_status_org
+            ON pg_objective_status(organization_id);
+
+        CREATE TABLE IF NOT EXISTS pg_autonomy_control (
+            organization_id  TEXT        PRIMARY KEY,
+            mode             TEXT        NOT NULL DEFAULT 'autonomous',
+            generation       BIGINT      NOT NULL DEFAULT 1,
+            changed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """,
+    ),
 ]
+
+# Objective statuses that permit consumption is allowed to proceed under.
+# Mirrors the admissive set checked by objectives_db.consume_permit's own
+# objective-lifecycle gate (objectives_db.py:1138-1141).
+_ADMISSIVE_OBJECTIVE_STATUSES = ("planned", "authorized", "executing")
 
 
 # ---------------------------------------------------------------------------
@@ -818,6 +860,114 @@ def get_schema_version(conn: "psycopg.Connection") -> int:
 
 
 # ---------------------------------------------------------------------------
+# Objective-lifecycle / autonomy-stop mirrors
+#
+# Objectives and mandates are SQLite-owned (objectives_db.py /
+# organization_db.py / operational_control.py). These functions are called
+# from the SQLite side (objectives_db.transition_objective,
+# operational_control.set_autonomy_mode) immediately after their own
+# successful SQLite commit, only for organizations whose authority_backend
+# is Postgres. This is a synchronous push, not a cross-database transaction
+# — it cannot be made atomic with the SQLite commit that triggers it. The
+# CAS-guarded ON CONFLICT below only prevents a redelivered/out-of-order
+# mirror write from regressing a newer status; it does not eliminate the
+# staleness window between the two commits. consume_permit() is written to
+# fail closed on a missing or non-admissive row rather than assume the two
+# stores agree.
+# ---------------------------------------------------------------------------
+
+
+def mirror_objective_status(
+    conn: "psycopg.Connection",
+    *,
+    objective_id: str,
+    organization_id: str,
+    status: str,
+    version: int,
+) -> None:
+    """Push the current objective status into the Postgres mirror.
+
+    Idempotent and monotonic: a write carrying a version less than or equal
+    to what's already stored is a no-op, so redelivery or out-of-order
+    arrival can never regress a newer status.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO pg_objective_status
+                (objective_id, organization_id, status, version, updated_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (objective_id, organization_id) DO UPDATE
+                SET status = EXCLUDED.status,
+                    version = EXCLUDED.version,
+                    updated_at = NOW()
+                WHERE pg_objective_status.version < EXCLUDED.version
+            """,
+            (objective_id, organization_id, status, version),
+        )
+        conn.commit()
+
+
+def get_objective_status(
+    conn: "psycopg.Connection", *, objective_id: str, organization_id: str
+) -> Optional[dict[str, Any]]:
+    """Read the mirrored objective status, or None if never mirrored."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT status, version FROM pg_objective_status
+            WHERE objective_id = %s AND organization_id = %s
+            """,
+            (objective_id, organization_id),
+        )
+        return cur.fetchone()
+
+
+def mirror_autonomy_mode(
+    conn: "psycopg.Connection",
+    *,
+    organization_id: str,
+    mode: str,
+    generation: int,
+) -> None:
+    """Push the current master-autonomy-stop mode into the Postgres mirror.
+
+    Generation-guarded the same way as mirror_objective_status: a write
+    carrying a generation less than or equal to what's stored is a no-op.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO pg_autonomy_control
+                (organization_id, mode, generation, changed_at)
+            VALUES (%s, %s, %s, NOW())
+            ON CONFLICT (organization_id) DO UPDATE
+                SET mode = EXCLUDED.mode,
+                    generation = EXCLUDED.generation,
+                    changed_at = NOW()
+                WHERE pg_autonomy_control.generation < EXCLUDED.generation
+            """,
+            (organization_id, mode, generation),
+        )
+        conn.commit()
+
+
+def get_autonomy_mode(
+    conn: "psycopg.Connection", *, organization_id: str
+) -> Optional[dict[str, Any]]:
+    """Read the mirrored autonomy mode, or None if never mirrored."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT mode, generation FROM pg_autonomy_control
+            WHERE organization_id = %s
+            """,
+            (organization_id,),
+        )
+        return cur.fetchone()
+
+
+# ---------------------------------------------------------------------------
 # Task claiming
 # ---------------------------------------------------------------------------
 
@@ -855,12 +1005,17 @@ def claim_task(
     resolved_tenant = str(tenant_id or DEFAULT_TENANT_ID)
 
     # Quota enforcement: reject if free-tier tenant is over their hard limit.
+    # Only tolerate "billing tables don't exist yet" (an older, pre-billing
+    # schema) — any OTHER error (a real bug, a constraint violation, a
+    # connection problem) must propagate rather than silently authorizing
+    # the claim. A Postgres error also leaves the transaction aborted, so an
+    # explicit rollback is required before the claim INSERT below can run.
     try:
         allowed, _, _ = check_quota(conn, tenant_id=resolved_tenant, meter_type="task_claim")
         if not allowed:
             return None
-    except Exception:
-        pass  # Fail-open: billing tables may not exist in older schemas
+    except psycopg.errors.UndefinedTable:
+        conn.rollback()
 
     with conn.cursor() as cur:
         cur.execute(
@@ -898,15 +1053,17 @@ def claim_task(
 
         conn.commit()
 
-        # Record billable usage (best-effort, non-blocking)
+        # Record billable usage (best-effort, non-blocking). The claim
+        # itself already committed above; only tolerate "billing tables
+        # don't exist yet," not arbitrary errors.
         try:
             record_usage(
                 conn, tenant_id=resolved_tenant, organization_id=organization_id,
                 meter_type="task_claim",
                 reference_id=f"claim:{task_id}:{organization_id}:{generation}",
             )
-        except Exception:
-            pass
+        except psycopg.errors.UndefinedTable:
+            conn.rollback()
 
         return generation
 
@@ -1343,6 +1500,11 @@ def consume_permit(
     claim_token: str,
     lease_generation: int,
     action_payload: dict[str, Any],
+    executor: str = "",
+    capability: str = "",
+    target_resource: str = "",
+    policy_version: Optional[str] = None,
+    objective_id: Optional[str] = None,
 ) -> bool:
     """Consume an execution permit (atomic, once-only).
 
@@ -1352,7 +1514,29 @@ def consume_permit(
     3. claim_token must match the permit's recorded claim_token.
     4. lease_generation must match the permit's recorded generation.
     5. SHA256 hash of action_payload must match the stored payload_hash.
-    6. A single atomic UPDATE with all five conditions prevents races.
+    6. executor, capability, and target_resource must match the permit's
+       recorded values exactly — a permit issued for one executor,
+       capability, or target resource cannot be consumed against another
+       (exact-action, exact-target binding; mirrors objectives_db.py's
+       issued_to==executor / capability / target_resource checks). These
+       fields were already stored at issuance by issue_permit() but never
+       re-validated here until now.
+    7. If policy_version is given, it must match the permit's recorded
+       policy_version (stale-policy fencing). Omit (None) to skip this
+       check, matching objectives_db.consume_permit's
+       current_policy_version=None convention.
+    8. If objective_id is given, the mirrored objective status
+       (pg_objective_status) must be present and in an admissive state, and
+       the mirrored master-autonomy-stop state (pg_autonomy_control) for
+       organization_id must be present and 'autonomous'. Objectives and
+       autonomy mode are SQLite-owned; these are narrow, versioned mirrors
+       pushed synchronously from the SQLite side (see
+       mirror_objective_status / mirror_autonomy_mode). A missing mirror
+       row is always treated as a rejection, never as an implicit
+       "admissible" / "autonomous" default — this is a deliberate fail-closed
+       choice, not an oversight, since the mirror push cannot be made
+       atomic with the SQLite commit that triggers it.
+    9. A single atomic UPDATE with all conditions prevents races.
 
     Args:
         conn: Postgres connection
@@ -1361,6 +1545,13 @@ def consume_permit(
         claim_token: Must match permit's claim_token
         lease_generation: Must match permit's lease_generation
         action_payload: Must hash to the stored payload_hash
+        executor: Must match the permit's recorded executor
+        capability: Must match the permit's recorded capability
+        target_resource: Must match the permit's recorded target_resource
+        policy_version: If given, must match the permit's recorded
+            policy_version
+        objective_id: If given, gates consumption on the mirrored objective
+            lifecycle state and organization autonomy mode
 
     Returns:
         True if consumed, False if any check fails.
@@ -1370,8 +1561,51 @@ def consume_permit(
     ).hexdigest()
 
     with conn.cursor() as cur:
+        if objective_id is not None:
+            cur.execute(
+                """
+                SELECT status FROM pg_objective_status
+                WHERE objective_id = %s AND organization_id = %s
+                """,
+                (objective_id, organization_id),
+            )
+            status_row = cur.fetchone()
+            if (
+                status_row is None
+                or status_row["status"] not in _ADMISSIVE_OBJECTIVE_STATUSES
+            ):
+                conn.rollback()
+                return False
+
+            cur.execute(
+                """
+                SELECT mode FROM pg_autonomy_control
+                WHERE organization_id = %s
+                """,
+                (organization_id,),
+            )
+            autonomy_row = cur.fetchone()
+            if autonomy_row is None or autonomy_row["mode"] != "autonomous":
+                conn.rollback()
+                return False
+
+        policy_clause = ""
+        params: list[Any] = [
+            permit_id,
+            organization_id,
+            claim_token,
+            lease_generation,
+            payload_hash,
+            executor,
+            capability,
+            target_resource,
+        ]
+        if policy_version is not None:
+            policy_clause = "AND policy_version = %s"
+            params.append(policy_version)
+
         cur.execute(
-            """
+            f"""
             UPDATE task_permits
             SET consumed_at = NOW()
             WHERE permit_id       = %s
@@ -1379,18 +1613,16 @@ def consume_permit(
               AND claim_token      = %s
               AND lease_generation = %s
               AND payload_hash     = %s
+              AND executor         = %s
+              AND capability       = %s
+              AND target_resource  = %s
+              {policy_clause}
               AND consumed_at     IS NULL
               AND revoked_at      IS NULL
               AND expires_at       > NOW()
             RETURNING permit_id
             """,
-            (
-                permit_id,
-                organization_id,
-                claim_token,
-                lease_generation,
-                payload_hash,
-            ),
+            params,
         )
         row = cur.fetchone()
         if not row:
@@ -1399,7 +1631,8 @@ def consume_permit(
 
         conn.commit()
 
-        # Record billable usage (best-effort)
+        # Record billable usage (best-effort — billing tables may not exist
+        # in older schemas, which is not itself an authorization failure).
         try:
             cur2 = conn.cursor()
             cur2.execute(
@@ -1415,8 +1648,8 @@ def consume_permit(
                     meter_type="permit_consume",
                     reference_id=f"permit:{permit_id}",
                 )
-        except Exception:
-            pass
+        except psycopg.errors.UndefinedTable:
+            conn.rollback()
 
         return True
 
@@ -1526,7 +1759,9 @@ def record_effect(
         conn.commit()
         is_new = row is not None
 
-    # Record billable usage for new effects only (best-effort)
+    # Record billable usage for new effects only (best-effort). The effect
+    # itself already committed above; only tolerate "billing tables don't
+    # exist yet," not arbitrary errors.
     if is_new:
         try:
             record_usage(
@@ -1535,8 +1770,8 @@ def record_effect(
                 meter_type="effect_record",
                 reference_id=f"effect:{effect_key}",
             )
-        except Exception:
-            pass
+        except psycopg.errors.UndefinedTable:
+            conn.rollback()
 
     return is_new
 
@@ -2214,6 +2449,19 @@ def check_quota(
     """Check if a tenant is within their quota for a meter type.
 
     Returns (allowed, used, limit). Enterprise tier always allowed.
+
+    A tenant with no explicit subscription row defaults to the seeded
+    'free' plan's limits rather than being hard-rejected. Tenant
+    registration (create_tenant, or simply being referenced by an ad hoc
+    tenant_id) and billing enrollment are two separate concerns; treating
+    "no subscription yet" as "zero quota forever" would make every
+    unregistered tenant permanently unable to claim, issue, or record
+    anything — effectively a silent, blanket authority denial unrelated to
+    any real billing decision. Defaulting to the free tier mirrors the
+    explicit free-tier subscription already seeded for DEFAULT_TENANT_ID
+    at migration time (see the v6->v7 migration) and keeps the actual quota
+    enforcement (usage compared against a real limit) intact — this is not
+    a bypass, it is the correct default tier.
     """
     tid = str(tenant_id)
     with conn.cursor() as cur:
@@ -2230,7 +2478,19 @@ def check_quota(
         sub_row = cur.fetchone()
 
     if not sub_row:
-        return (False, 0, 0)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT tier, monthly_task_limit, monthly_permit_limit,
+                       monthly_effect_limit
+                FROM billing_plans WHERE plan_id = 'free'
+                """
+            )
+            sub_row = cur.fetchone()
+        if not sub_row:
+            # The free plan itself is missing (should never happen post-
+            # migration) — fail closed rather than assume unlimited access.
+            return (False, 0, 0)
 
     limit_map = {
         "task_claim": sub_row["monthly_task_limit"],

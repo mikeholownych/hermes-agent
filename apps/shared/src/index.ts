@@ -54,11 +54,11 @@ export {
 } from './skin'
 export {
   buildCharterforgeWebSocketUrl,
+  type CharterforgeWebSocketUrlOptions,
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,
   type GatewayWsUrlResult,
-  type CharterforgeWebSocketUrlOptions,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type ResolveGatewayWsUrlDeps,

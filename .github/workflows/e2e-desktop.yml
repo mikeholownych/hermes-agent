@@ -125,6 +125,10 @@ jobs:
           path: apps/desktop/playwright-report
           retention-days: 14
           overwrite: true
+          # `always()` means this step also runs when an earlier step (build,
+          # xvfb boot) failed before Playwright ever produced a report dir —
+          # that's an expected case, not something to warn about.
+          if-no-files-found: ignore
 
       # ── Upload test results (screenshots, traces, diffs) ───────────────
       - name: Upload test results

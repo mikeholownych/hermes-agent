@@ -83,6 +83,11 @@ jobs:
           cache-dependency-glob: |
             pyproject.toml
             uv.lock
+          # Without a per-slice suffix, all parallel matrix jobs race to
+          # save the same cache key — only the first writer wins and the
+          # rest emit "Unable to reserve cache" / "Cache save failed."
+          # annotations. Each slice gets its own key instead.
+          cache-suffix: slice-${{ matrix.slice.index }}
 
       - name: Set up Python 3.11
         run: uv python install 3.11

@@ -179,3 +179,9 @@ apps/desktop/demo/
 # pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
 infographic/
 native/fts5_cjk/*.so
+
+# Ota local runtime artifacts
+.ota/state/*
+.ota/contracts/*
+.ota/receipts/*
+.ota/proof/*

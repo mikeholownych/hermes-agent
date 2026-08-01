@@ -1,0 +1,95 @@
+version: 1
+
+project:
+  name: charterforge
+  description: Docs-site pipeline pilot contract (OTA adoption trial, scoped to website/ only)
+  type: application
+
+toolchains:
+  node:
+    version: "22"
+  python:
+    version: "3.11"
+
+tasks:
+  docs-setup-npm:
+    description: Install website npm dependencies (npm ci)
+    prepare:
+      kind: dependency_hydration
+      medium: package_dependencies
+      source:
+        kind: node_package_manager
+        cwd: website
+        manager: npm
+        mode: ci
+    requirements:
+      toolchains:
+        - node
+    effects:
+      writes:
+        - website/node_modules
+      network: true
+      network_kind: dependency_hydration
+
+  docs-setup-pip:
+    description: Install the ascii-guard/pyyaml Python tools used by the docs pipeline
+    command:
+      exe: python
+      args: ["-m", "pip", "install", "ascii-guard==2.3.0", "pyyaml==6.0.3"]
+    requirements:
+      toolchains:
+        - python
+    effects:
+      network: true
+      network_kind: dependency_hydration
+
+  docs-extract-skills:
+    description: Extract skill metadata for the docs dashboard
+    command:
+      exe: python3
+      args: ["website/scripts/extract-skills.py"]
+    depends_on:
+      - docs-setup-npm
+      - docs-setup-pip
+    requirements:
+      toolchains:
+        - python
+
+  docs-generate-skill-docs:
+    description: Regenerate per-skill docs pages and catalogs
+    command:
+      exe: python3
+      args: ["website/scripts/generate-skill-docs.py"]
+    depends_on:
+      - docs-extract-skills
+    requirements:
+      toolchains:
+        - python
+
+  docs-lint-diagrams:
+    description: Lint docs diagrams
+    run: cd website && npm run lint:diagrams
+    depends_on:
+      - docs-generate-skill-docs
+    requirements:
+      toolchains:
+        - node
+
+  docs-build:
+    description: Build the Docusaurus site
+    run: cd website && npm run build
+    depends_on:
+      - docs-lint-diagrams
+    requirements:
+      toolchains:
+        - node
+
+workflows:
+  default: docs
+  docs:
+    intent: ci
+    description: Docs site checks pipeline (extract, generate, lint, build)
+    setup:
+      task: docs-setup-npm
+    run:
+      task: docs-build

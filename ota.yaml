@@ -2,14 +2,14 @@ version: 1
 
 project:
   name: charterforge
-  description: Docs-site pipeline pilot contract (OTA adoption trial, scoped to website/ only)
+  description: OTA adoption trial — currently scoped to the docs-site and payment-rails pipelines
   type: application
 
 toolchains:
   node:
     version: "22"
   python:
-    version: "3.11"
+    version: ">=3.11,<3.13"
 
 tasks:
   docs-setup-npm:
@@ -84,6 +84,101 @@ tasks:
       toolchains:
         - node
 
+  build-main-wheel:
+    description: Build the main charterforge wheel + sdist, shared by every rail
+    command:
+      exe: uv
+      args: ["build", "--wheel", "--sdist", "--out-dir", "dist"]
+    requirements:
+      toolchains:
+        - python
+    effects:
+      writes:
+        - dist
+
+  build-rail-stripe:
+    description: Build the stripe rail wheel, install both into a fresh venv, verify its entry point
+    run: |
+      uv build --wheel --sdist --out-dir dist-stripe packages/charterforge-stripe-rail
+      python -m venv /tmp/test-venv
+      /tmp/test-venv/bin/pip install dist/charterforge-0.*-py3-none-any.whl
+      /tmp/test-venv/bin/pip install dist-stripe/charterforge_stripe_rail-*-py3-none-any.whl
+      /tmp/test-venv/bin/python -c "
+      from importlib.metadata import entry_points
+      eps = entry_points(group='charterforge.inbound_payment_rails')
+      rail_eps = [ep for ep in eps if 'stripe' in ep.name]
+      assert len(rail_eps) >= 1, 'Entry point not found'
+      cls = rail_eps[0].load()
+      print(f'✓ {cls.__name__} entry point works')
+      "
+    depends_on:
+      - build-main-wheel
+    requirements:
+      toolchains:
+        - python
+    effects:
+      writes:
+        - dist-stripe
+
+  build-rail-nevermined:
+    description: Build the nevermined rail wheel, install both into a fresh venv, verify its entry point
+    run: |
+      uv build --wheel --sdist --out-dir dist-nevermined packages/charterforge-nevermined-rail
+      python -m venv /tmp/test-venv
+      /tmp/test-venv/bin/pip install dist/charterforge-0.*-py3-none-any.whl
+      /tmp/test-venv/bin/pip install dist-nevermined/charterforge_nevermined_rail-*-py3-none-any.whl
+      /tmp/test-venv/bin/python -c "
+      from importlib.metadata import entry_points
+      eps = entry_points(group='charterforge.inbound_payment_rails')
+      rail_eps = [ep for ep in eps if 'nevermined' in ep.name]
+      assert len(rail_eps) >= 1, 'Entry point not found'
+      cls = rail_eps[0].load()
+      print(f'✓ {cls.__name__} entry point works')
+      "
+    depends_on:
+      - build-main-wheel
+    requirements:
+      toolchains:
+        - python
+    effects:
+      writes:
+        - dist-nevermined
+
+  build-rail-circle:
+    description: Build the circle rail wheel, install both into a fresh venv, verify its entry point
+    run: |
+      uv build --wheel --sdist --out-dir dist-circle packages/charterforge-circle-rail
+      python -m venv /tmp/test-venv
+      /tmp/test-venv/bin/pip install dist/charterforge-0.*-py3-none-any.whl
+      /tmp/test-venv/bin/pip install dist-circle/charterforge_circle_rail-*-py3-none-any.whl
+      /tmp/test-venv/bin/python -c "
+      from importlib.metadata import entry_points
+      eps = entry_points(group='charterforge.inbound_payment_rails')
+      rail_eps = [ep for ep in eps if 'circle' in ep.name]
+      assert len(rail_eps) >= 1, 'Entry point not found'
+      cls = rail_eps[0].load()
+      print(f'✓ {cls.__name__} entry point works')
+      "
+    depends_on:
+      - build-main-wheel
+    requirements:
+      toolchains:
+        - python
+    effects:
+      writes:
+        - dist-circle
+
+  test-stripe-integration:
+    description: Run the Stripe rail's integration test suite in the same venv it was verified in
+    run: |
+      /tmp/test-venv/bin/pip install pytest httpx
+      /tmp/test-venv/bin/python -m pytest -q tests/payment_rails/test_stripe_rail.py
+    depends_on:
+      - build-rail-stripe
+    requirements:
+      toolchains:
+        - python
+
 workflows:
   default: docs
   docs:
@@ -93,3 +188,11 @@ workflows:
       task: docs-setup-npm
     run:
       task: docs-build
+
+  payment-rails:
+    intent: ci
+    description: Payment rail wheel build + venv install + entry-point verification + Stripe integration tests
+    setup:
+      task: build-main-wheel
+    run:
+      task: test-stripe-integration

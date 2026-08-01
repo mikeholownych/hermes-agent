@@ -34,37 +34,25 @@ jobs:
           version: "0.8.0"
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: "3.12"
-      
-      - name: Build main charterforge wheel
+
+      # Pilot: the build/install/verify pipeline below is declared once in
+      # ota.yaml at the repo root as build-main-wheel -> build-rail-<name> ->
+      # (stripe only) test-stripe-integration. `ota run` resolves and runs
+      # the full depends_on chain in order; see ota.yaml for the task graph.
+      - uses: ota-run/setup@85bf49c11a5aa3ddedfa56c47682cfd40b238f1f # v1.0.9
+        with:
+          ota-version: v1.6.25
+
+      - name: Build + install + verify rail via ota
         run: |
-          uv build --wheel --sdist --out-dir dist
-          uv build --wheel --sdist --out-dir dist-${{ matrix.rail }} packages/charterforge-${{ matrix.rail }}-rail
-      
-      - name: Install rail + dependencies
-        run: |
-          python -m venv /tmp/test-venv
-          /tmp/test-venv/bin/pip install dist/charterforge-0.*-py3-none-any.whl
-          /tmp/test-venv/bin/pip install dist-${{ matrix.rail }}/charterforge_${{ matrix.rail }}_rail-*-py3-none-any.whl
-      
-      - name: Verify entry points
-        run: |
-          /tmp/test-venv/bin/python -c "
-          from importlib.metadata import entry_points
-          eps = entry_points(group='charterforge.inbound_payment_rails')
-          rail_eps = [ep for ep in eps if '${{ matrix.rail }}' in ep.name]
-          assert len(rail_eps) >= 1, 'Entry point not found'
-          cls = rail_eps[0].load()
-          print(f'✓ {cls.__name__} entry point works')
-          "
-      
-      - name: Run integration tests (Stripe only)
-        if: matrix.rail == 'stripe'
-        run: |
-          /tmp/test-venv/bin/pip install pytest httpx
-          /tmp/test-venv/bin/python -m pytest -q tests/payment_rails/test_stripe_rail.py
+          if [ "${{ matrix.rail }}" = "stripe" ]; then
+            ota run test-stripe-integration --stream
+          else
+            ota run build-rail-${{ matrix.rail }} --stream
+          fi
 
   matrix-complete:
     needs: build

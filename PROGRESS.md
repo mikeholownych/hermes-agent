@@ -40,6 +40,19 @@ Charterforge v0.21+ Architecture
     └── Postgres (production) — Requires charterforge[postgres]
 ```
 
+## OTA Pilots
+
+Trialing [ota-run/ota](https://github.com/ota-run/ota) — a Rust CLI that declares a repo's setup/task truth (toolchains, tasks, dependency ordering) in one `ota.yaml` contract instead of scattering it across loose scripts and duplicated `npm ci`/`uv sync` invocations across separate CI workflow files.
+
+| Pilot | Workflow | PR | Status | What it tests |
+|-------|----------|----|--------|----------------|
+| #1 | `docs-site-checks.yml` | #6 | ✅ Merged | Node/Docusaurus task chain: npm ci → skill extraction/regen → diagram lint → build |
+| #2 | `payment-rails.yml` | #7 | ✅ Merged | Python wheel build + fresh-venv install + entry-point verification, across all 3 rails (Stripe, Nevermined, Circle) |
+
+Both scoped narrowly (single, isolated workflow each) and verified end-to-end — locally, in PR CI, and post-merge on `main` — before merging. Each collapses several bespoke workflow steps into one `ota run <task>` call, with the task graph declared once in the shared root `ota.yaml`.
+
+**Investigated and declined:** expanding to `js-tests.yml`. That workflow dynamically discovers npm workspace packages + their check scripts at runtime and fans them into a matrix (currently 10 package/script pairs across 6 packages). OTA has no construct for "dynamically enumerate N things and run each" — `variants` is a conditional-selection mechanism, not a matrix, and task `inputs` don't thread into the executed command through any tested binding (env var, templating, positional args). The only path would be hardcoding today's 10 tasks, which would silently stop covering any future new package or script — a real regression on a workflow that gates every PR. Left as-is by deliberate decision.
+
 ## Next Actions
 
 1. Test v0.21.0-rc.1 in real environment
@@ -69,3 +82,5 @@ fd0485cab - Database CLI commands (8 tests)
 - **v0.21.0-rc.1 Release**: https://github.com/mikeholownych/charterforge/releases/tag/v0.21.0-rc.1
 - **CI Passes**: All core tests passing locally and in CI
 - **Proof**: Real subprocess fault injection + Postgres authority operations
+- **OTA Pilot #1 (docs-site-checks.yml)**: https://github.com/mikeholownych/charterforge/pull/6
+- **OTA Pilot #2 (payment-rails.yml)**: https://github.com/mikeholownych/charterforge/pull/7
